@@ -53,12 +53,21 @@ document.addEventListener('alpine:init', () => {
         userMarker: null,
         searchQuery: '',
         isSearching: false,
-        searchResults: [],
+        suggestions: [],
+        showSuggestions: false,
         stations: stationsData,
 
         init() {
             this.$nextTick(() => {
                 this.initMap();
+
+                const mapEl = this.$refs.mapContainer;
+                if (mapEl && window.ResizeObserver) {
+                    const ro = new ResizeObserver(() => {
+                        if (this.map) this.map.invalidateSize();
+                    });
+                    ro.observe(mapEl);
+                }
             });
 
             this.$watch('stations', (newStations) => {
@@ -81,16 +90,15 @@ document.addEventListener('alpine:init', () => {
                 attributionControl: false,
             }).setView([initialLat, initialLng], 11);
 
-            // Clean modern OpenStreetMap tiles
-            L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+            // Free OpenStreetMap tiles (no API key required)
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                 maxZoom: 19,
-                subdomains: 'abcd',
+                attribution: '&copy; OpenStreetMap contributors',
             }).addTo(this.map);
 
             this.markersLayer = L.layerGroup().addTo(this.map);
             this.renderMarkers(this.stations);
 
-            // Force resize update
             setTimeout(() => {
                 if (this.map) this.map.invalidateSize();
             }, 300);
@@ -153,7 +161,7 @@ document.addEventListener('alpine:init', () => {
                             <button
                                 type="button"
                                 onclick="window.dispatchEvent(new CustomEvent('edit-station', { detail: ${station.id} }))"
-                                class="flex-1 text-center text-xs py-1 px-2 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors"
+                                class="flex-1 text-center text-xs py-1 px-2 rounded-md bg-emerald-600 text-white font-medium hover:bg-emerald-500 transition-colors cursor-pointer"
                             >
                                 Edit Stasiun
                             </button>
@@ -181,60 +189,98 @@ document.addEventListener('alpine:init', () => {
             }
         },
 
-        // Search location via OpenStreetMap Nominatim
+        // Fetch location suggestions as user types
+        async onSearchInput() {
+            const query = this.searchQuery.trim();
+            if (query.length < 2) {
+                this.suggestions = [];
+                this.showSuggestions = false;
+                return;
+            }
+
+            this.isSearching = true;
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=6&addressdetails=1`;
+                const response = await fetch(url);
+                const data = await response.json();
+                this.suggestions = (data || []).map(item => ({
+                    name: item.name || item.display_name.split(',')[0],
+                    display_name: item.display_name,
+                    lat: parseFloat(item.lat),
+                    lng: parseFloat(item.lon),
+                }));
+                this.showSuggestions = this.suggestions.length > 0;
+            } catch (err) {
+                console.error('Nominatim suggestion error:', err);
+                this.suggestions = [];
+            } finally {
+                this.isSearching = false;
+            }
+        },
+
+        selectSuggestion(item) {
+            this.searchQuery = item.name || item.display_name;
+            this.suggestions = [];
+            this.showSuggestions = false;
+
+            if (!this.map) return;
+
+            this.map.setView([item.lat, item.lng], 15);
+            this.map.invalidateSize();
+
+            if (this.userMarker) {
+                this.userMarker.setLatLng([item.lat, item.lng]);
+            } else {
+                const searchIcon = L.divIcon({
+                    html: `
+                        <div class="relative flex items-center justify-center">
+                            <span class="animate-ping absolute inline-flex size-7 rounded-full bg-sky-400 opacity-75"></span>
+                            <div class="size-7 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white">
+                                📍
+                            </div>
+                        </div>
+                    `,
+                    className: 'search-pin',
+                    iconSize: [28, 28],
+                    iconAnchor: [14, 14],
+                });
+
+                this.userMarker = L.marker([item.lat, item.lng], { icon: searchIcon }).addTo(this.map);
+            }
+
+            this.userMarker.bindPopup(`<b>Titik Pencarian:</b><br>${item.display_name}`).openPopup();
+        },
+
+        // Search trigger on form submit
         async searchLocation() {
+            if (this.suggestions.length > 0) {
+                this.selectSuggestion(this.suggestions[0]);
+                return;
+            }
+
             const query = this.searchQuery.trim();
             if (!query) return;
 
             this.isSearching = true;
-            this.searchResults = [];
-
             try {
-                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=5`;
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=1`;
                 const response = await fetch(url);
                 const data = await response.json();
-                this.searchResults = data;
-
-                if (data.length > 0) {
-                    this.selectLocation(data[0]);
+                if (data && data.length > 0) {
+                    this.selectSuggestion({
+                        name: data[0].name || data[0].display_name.split(',')[0],
+                        display_name: data[0].display_name,
+                        lat: parseFloat(data[0].lat),
+                        lng: parseFloat(data[0].lon),
+                    });
+                } else {
+                    alert('Lokasi tidak ditemukan di peta.');
                 }
             } catch (err) {
                 console.error('Nominatim search error:', err);
             } finally {
                 this.isSearching = false;
             }
-        },
-
-        selectLocation(result) {
-            const lat = parseFloat(result.lat);
-            const lng = parseFloat(result.lon);
-
-            if (!this.map) return;
-
-            this.map.setView([lat, lng], 15);
-
-            if (this.userMarker) {
-                this.userMarker.setLatLng([lat, lng]);
-            } else {
-                const searchIcon = L.divIcon({
-                    html: `
-                        <div class="flex items-center justify-center">
-                            <span class="animate-ping absolute inline-flex size-6 rounded-full bg-sky-400 opacity-75"></span>
-                            <div class="size-6 rounded-full bg-sky-600 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white">
-                                📍
-                            </div>
-                        </div>
-                    `,
-                    className: 'search-pin',
-                    iconSize: [24, 24],
-                    iconAnchor: [12, 12],
-                });
-
-                this.userMarker = L.marker([lat, lng], { icon: searchIcon }).addTo(this.map);
-            }
-
-            this.userMarker.bindPopup(`<b>Titik Pencarian:</b><br>${result.display_name}`).openPopup();
-            this.searchResults = [];
         },
 
         locateMe() {
@@ -250,6 +296,7 @@ document.addEventListener('alpine:init', () => {
 
                     if (!this.map) return;
                     this.map.setView([lat, lng], 15);
+                    this.map.invalidateSize();
 
                     if (this.userMarker) {
                         this.userMarker.setLatLng([lat, lng]);
@@ -257,15 +304,15 @@ document.addEventListener('alpine:init', () => {
                         const myIcon = L.divIcon({
                             html: `
                                 <div class="relative flex items-center justify-center">
-                                    <span class="animate-ping absolute inline-flex size-7 rounded-full bg-emerald-400 opacity-75"></span>
-                                    <div class="size-6 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white">
+                                    <span class="animate-ping absolute inline-flex size-8 rounded-full bg-emerald-400 opacity-75"></span>
+                                    <div class="size-7 rounded-full bg-emerald-600 text-white flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white">
                                         🚗
                                     </div>
                                 </div>
                             `,
                             className: 'my-location-pin',
-                            iconSize: [24, 24],
-                            iconAnchor: [12, 12],
+                            iconSize: [28, 28],
+                            iconAnchor: [14, 14],
                         });
 
                         this.userMarker = L.marker([lat, lng], { icon: myIcon }).addTo(this.map);
@@ -287,38 +334,80 @@ document.addEventListener('alpine:init', () => {
         marker: null,
         pickerSearch: '',
         isSearching: false,
+        suggestions: [],
+        showSuggestions: false,
 
         init() {
-            // Modal might be hidden initially; wait for resize or call when modal opens
+            this.$nextTick(() => {
+                const el = this.$refs.pickerMapContainer;
+                if (el && window.ResizeObserver) {
+                    const ro = new ResizeObserver((entries) => {
+                        for (let entry of entries) {
+                            if (entry.contentRect.width > 0 && entry.contentRect.height > 0) {
+                                if (!this.pickerMap) {
+                                    this.setupPickerMap();
+                                } else {
+                                    this.pickerMap.invalidateSize();
+                                }
+                            }
+                        }
+                    });
+                    ro.observe(el);
+                }
+
+                // Check visibility periodically when modal opens
+                setTimeout(() => this.ensureMap(), 200);
+                setTimeout(() => this.ensureMap(), 500);
+                setTimeout(() => this.ensureMap(), 1000);
+            });
+
             this.$watch('$wire.form.latitude', (val) => {
-                if (this.marker && val && !isNaN(val)) {
-                    this.updateMarkerPosition(parseFloat(val), parseFloat(this.$wire.form.longitude || 106.8456));
+                if (val && !isNaN(val)) {
+                    const lat = parseFloat(val);
+                    const lng = parseFloat(this.$wire.form.longitude || 106.8456);
+                    if (this.marker) {
+                        this.marker.setLatLng([lat, lng]);
+                    }
+                    if (this.pickerMap) {
+                        this.pickerMap.setView([lat, lng], this.pickerMap.getZoom());
+                        this.pickerMap.invalidateSize();
+                    }
                 }
             });
 
-            // Listen for modal opened
             window.addEventListener('station-modal-opened', () => {
                 setTimeout(() => {
-                    this.setupPickerMap();
-                }, 200);
+                    this.ensureMap();
+                }, 250);
             });
         },
 
-        setupPickerMap() {
+        ensureMap() {
+            const el = this.$refs.pickerMapContainer;
+            if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
+            if (!this.pickerMap) {
+                this.setupPickerMap();
+            } else {
+                this.pickerMap.invalidateSize();
+            }
+        },
+
+        setupPickerMap(forcedLat = null, forcedLng = null) {
             const el = this.$refs.pickerMapContainer;
             if (!el) return;
 
-            let curLat = parseFloat(this.$wire.form.latitude) || initialLat || -6.2088;
-            let curLng = parseFloat(this.$wire.form.longitude) || initialLng || 106.8456;
+            let curLat = forcedLat ?? (parseFloat(this.$wire.form.latitude) || initialLat || -6.2088);
+            let curLng = forcedLng ?? (parseFloat(this.$wire.form.longitude) || initialLng || 106.8456);
 
             if (!this.pickerMap) {
                 this.pickerMap = L.map(el, {
                     attributionControl: false,
-                }).setView([curLat, curLng], 14);
+                    zoomControl: true,
+                }).setView([curLat, curLng], 15);
 
-                L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+                L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
-                    subdomains: 'abcd',
+                    attribution: '&copy; OpenStreetMap contributors',
                 }).addTo(this.pickerMap);
 
                 const pickerIcon = L.divIcon({
@@ -348,6 +437,10 @@ document.addEventListener('alpine:init', () => {
                     this.updateMarkerPosition(e.latlng.lat, e.latlng.lng);
                     this.setCoordinates(e.latlng.lat, e.latlng.lng);
                 });
+
+                setTimeout(() => {
+                    if (this.pickerMap) this.pickerMap.invalidateSize();
+                }, 200);
             } else {
                 this.updateMarkerPosition(curLat, curLng);
                 this.pickerMap.invalidateSize();
@@ -359,7 +452,7 @@ document.addEventListener('alpine:init', () => {
                 this.marker.setLatLng([lat, lng]);
             }
             if (this.pickerMap) {
-                this.pickerMap.setView([lat, lng], this.pickerMap.getZoom());
+                this.pickerMap.setView([lat, lng], 15);
                 this.pickerMap.invalidateSize();
             }
         },
@@ -371,7 +464,68 @@ document.addEventListener('alpine:init', () => {
             this.$wire.set('form.longitude', roundedLng);
         },
 
+        // Auto-suggestion as user types in picker
+        async onPickerInput() {
+            const query = this.pickerSearch.trim();
+            if (query.length < 2) {
+                this.suggestions = [];
+                this.showSuggestions = false;
+                return;
+            }
+
+            this.isSearching = true;
+            try {
+                const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=6&addressdetails=1`;
+                const res = await fetch(url);
+                const data = await res.json();
+                this.suggestions = (data || []).map(item => ({
+                    name: item.name || item.display_name.split(',')[0],
+                    display_name: item.display_name,
+                    lat: parseFloat(item.lat),
+                    lng: parseFloat(item.lon),
+                }));
+                this.showSuggestions = this.suggestions.length > 0;
+            } catch (e) {
+                console.error('Nominatim picker suggestion error:', e);
+                this.suggestions = [];
+            } finally {
+                this.isSearching = false;
+            }
+        },
+
+        selectSuggestion(item) {
+            this.pickerSearch = item.name || item.display_name;
+            this.suggestions = [];
+            this.showSuggestions = false;
+
+            const lat = item.lat;
+            const lng = item.lng;
+
+            if (!this.pickerMap) {
+                this.setupPickerMap(lat, lng);
+            } else {
+                this.pickerMap.invalidateSize();
+                this.updateMarkerPosition(lat, lng);
+            }
+
+            this.setCoordinates(lat, lng);
+
+            // Auto-fill address
+            this.$wire.set('form.address', item.display_name);
+
+            // Auto-fill station name if still empty
+            const currentName = this.$wire.get ? this.$wire.get('form.name') : this.$wire.form?.name;
+            if (!currentName && item.name) {
+                this.$wire.set('form.name', item.name);
+            }
+        },
+
         async searchPickerLocation() {
+            if (this.suggestions.length > 0) {
+                this.selectSuggestion(this.suggestions[0]);
+                return;
+            }
+
             const query = this.pickerSearch.trim();
             if (!query) return;
 
@@ -381,15 +535,14 @@ document.addEventListener('alpine:init', () => {
                 const res = await fetch(url);
                 const data = await res.json();
                 if (data && data.length > 0) {
-                    const lat = parseFloat(data[0].lat);
-                    const lng = parseFloat(data[0].lon);
-                    this.updateMarkerPosition(lat, lng);
-                    this.setCoordinates(lat, lng);
-
-                    // If address is empty in form, auto-fill address
-                    if (!this.$wire.form.address) {
-                        this.$wire.set('form.address', data[0].display_name);
-                    }
+                    this.selectSuggestion({
+                        name: data[0].name || data[0].display_name.split(',')[0],
+                        display_name: data[0].display_name,
+                        lat: parseFloat(data[0].lat),
+                        lng: parseFloat(data[0].lon),
+                    });
+                } else {
+                    alert('Lokasi tidak ditemukan. Coba kata kunci yang lebih spesifik.');
                 }
             } catch (e) {
                 console.error(e);

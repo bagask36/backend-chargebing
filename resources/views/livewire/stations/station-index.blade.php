@@ -23,12 +23,35 @@
             {{-- Search Bar & Location Controls --}}
             <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <form @submit.prevent="searchLocation" class="flex-1 flex items-center gap-2 max-w-lg">
-                    <div class="relative flex-1">
+                    <div class="relative flex-1" @click.outside="showSuggestions = false">
                         <flux:input
                             x-model="searchQuery"
+                            @input.debounce.350ms="onSearchInput"
+                            @focus="if (suggestions.length > 0) showSuggestions = true"
                             placeholder="Cari lokasi di peta (cth: Rest Area KM 57, Senayan, Gambir)..."
                             icon="magnifying-glass"
                         />
+
+                        {{-- Suggestions Dropdown --}}
+                        <div
+                            x-show="showSuggestions && suggestions.length > 0"
+                            x-transition
+                            class="absolute left-0 right-0 top-full mt-1.5 z-[1050] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-64 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-700/60"
+                            style="display: none;"
+                        >
+                            <template x-for="(item, idx) in suggestions" :key="idx">
+                                <div
+                                    @mousedown.prevent="selectSuggestion(item)"
+                                    class="p-2.5 hover:bg-emerald-50 dark:hover:bg-zinc-700/60 cursor-pointer transition-colors flex items-start gap-2.5 text-left"
+                                >
+                                    <span class="text-emerald-500 mt-0.5 text-sm">📍</span>
+                                    <div class="min-w-0 flex-1">
+                                        <p class="text-xs font-semibold text-zinc-900 dark:text-white truncate" x-text="item.name"></p>
+                                        <p class="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1" x-text="item.display_name"></p>
+                                    </div>
+                                </div>
+                            </template>
+                        </div>
                     </div>
                     <flux:button type="submit" variant="filled" size="sm" icon="magnifying-glass">
                         <span x-show="!isSearching">Cari</span>
@@ -72,8 +95,8 @@
             </div>
 
             {{-- Map Container --}}
-            <div class="relative w-full h-[400px] sm:h-[450px] rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 z-0">
-                <div x-ref="mapContainer" class="w-full h-full"></div>
+            <div wire:ignore class="relative w-full h-[400px] sm:h-[450px] rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 z-0">
+                <div x-ref="mapContainer" class="w-full h-full min-h-[400px]"></div>
             </div>
         </div>
     </flux:card>
@@ -281,36 +304,71 @@
                         x-data="locationPickerMap({{ $form->latitude ?? -6.2088 }}, {{ $form->longitude ?? 106.8456 }})"
                         class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 space-y-2.5"
                     >
-                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 relative z-30">
                             <div>
                                 <flux:label class="text-xs font-bold text-zinc-800 dark:text-zinc-200">
                                     📍 Pilih Titik Charger di Peta
                                 </flux:label>
                                 <p class="text-[11px] text-zinc-500">
-                                    Klik di peta atau geser pin untuk menentukan koordinat presisi.
+                                    Klik di peta atau cari nama lokasi untuk meletakkan pin koordinat.
                                 </p>
                             </div>
 
-                            <div class="flex items-center gap-1.5 max-w-xs w-full">
-                                <flux:input
-                                    x-model="pickerSearch"
-                                    placeholder="Cari alamat/nama gedung..."
-                                    size="sm"
-                                    @keydown.enter.prevent="searchPickerLocation"
-                                />
-                                <flux:button
-                                    type="button"
-                                    @click="searchPickerLocation"
-                                    variant="filled"
-                                    size="sm"
+                            <div class="relative flex-1 max-w-sm w-full" @click.outside="showSuggestions = false">
+                                <div class="flex items-center gap-1.5">
+                                    <div class="relative flex-1">
+                                        <flux:input
+                                            x-model="pickerSearch"
+                                            @input.debounce.300ms="onPickerInput"
+                                            @focus="if (suggestions.length > 0) showSuggestions = true"
+                                            placeholder="Ketik alamat/nama gedung..."
+                                            size="sm"
+                                            @keydown.enter.prevent="if (suggestions.length > 0) { selectSuggestion(suggestions[0]); } else { searchPickerLocation(); }"
+                                            @keydown.escape="showSuggestions = false"
+                                        />
+                                        {{-- Loading spinner --}}
+                                        <div x-show="isSearching" class="absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none" style="display: none;">
+                                            <svg class="animate-spin h-3.5 w-3.5 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                            </svg>
+                                        </div>
+                                    </div>
+                                    <flux:button
+                                        type="button"
+                                        @click="searchPickerLocation"
+                                        variant="filled"
+                                        size="sm"
+                                    >
+                                        Set
+                                    </flux:button>
+                                </div>
+
+                                {{-- Suggestions Dropdown in Modal --}}
+                                <div
+                                    x-show="showSuggestions && suggestions.length > 0"
+                                    x-transition
+                                    class="absolute left-0 right-0 top-full mt-1.5 z-[1050] bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-xl shadow-2xl max-h-60 overflow-y-auto divide-y divide-zinc-100 dark:divide-zinc-700/60"
+                                    style="display: none;"
                                 >
-                                    Set
-                                </flux:button>
+                                    <template x-for="(item, idx) in suggestions" :key="idx">
+                                        <div
+                                            @mousedown.prevent="selectSuggestion(item)"
+                                            class="p-2.5 hover:bg-emerald-50 dark:hover:bg-zinc-700/80 cursor-pointer transition-colors flex items-start gap-2 text-left"
+                                        >
+                                            <span class="text-emerald-500 mt-0.5 text-xs">📍</span>
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-xs font-semibold text-zinc-900 dark:text-white truncate" x-text="item.name"></p>
+                                                <p class="text-[11px] text-zinc-500 dark:text-zinc-400 line-clamp-1" x-text="item.display_name"></p>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="w-full h-56 rounded-lg overflow-hidden border border-zinc-300 dark:border-zinc-700 relative z-0">
-                            <div x-ref="pickerMapContainer" class="w-full h-full"></div>
+                        <div wire:ignore class="w-full h-56 rounded-lg overflow-hidden border border-zinc-300 dark:border-zinc-700 relative z-0">
+                            <div x-ref="pickerMapContainer" class="w-full h-full min-h-[224px]"></div>
                         </div>
                     </div>
                 </div>
