@@ -9,7 +9,9 @@ use App\Models\Station;
 use Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\Url;
 use Livewire\Component;
@@ -35,6 +37,8 @@ class StationIndex extends Component
     #[Url(history: true)]
     public string $compat_status = 'all';
 
+    public string $view_mode = 'map'; // 'map' or 'table'
+
     public function updatedSearch(): void
     {
         $this->resetPage();
@@ -59,6 +63,7 @@ class StationIndex extends Component
     {
         $this->form->resetForm();
         Flux::modal('station-modal')->show();
+        $this->dispatch('station-modal-opened');
     }
 
     public function edit(Station $station): void
@@ -66,6 +71,16 @@ class StationIndex extends Component
         $station->load('connectors');
         $this->form->setStation($station);
         Flux::modal('station-modal')->show();
+        $this->dispatch('station-modal-opened');
+    }
+
+    #[On('edit-station')]
+    public function handleEditStation(int $id): void
+    {
+        $station = Station::find($id);
+        if ($station) {
+            $this->edit($station);
+        }
     }
 
     public function save(): void
@@ -156,12 +171,15 @@ class StationIndex extends Component
             });
         }
 
+        $allMapStations = (clone $query)->get();
+
         $stations = $query->orderByDesc('is_favorite')
             ->orderBy('name')
             ->paginate(10);
 
         return view('livewire.stations.station-index', [
             'stations' => $stations,
+            'allMapStations' => $allMapStations,
         ]);
     }
 }

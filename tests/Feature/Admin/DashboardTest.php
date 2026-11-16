@@ -35,3 +35,4 @@ test('authenticated user can access dashboard and see summary metrics', function
         ->assertViewHas('totalSessions', 1)
         ->assertViewHas('monthDcKwh', 45.0);
 });
+

@@ -70,3 +70,4 @@ test('can create, update, and delete charging session in admin modal', function 
     $test->call('delete', $session->id);
     $this->assertDatabaseMissing('charging_sessions', ['id' => $session->id]);
 });
+

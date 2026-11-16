@@ -57,3 +57,4 @@ test('authenticated user can logout', function (): void {
 
     $this->assertGuest();
 });
+

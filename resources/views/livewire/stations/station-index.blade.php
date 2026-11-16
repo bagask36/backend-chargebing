@@ -1,26 +1,90 @@
 <div class="space-y-6">
-    {{-- Header --}}
+    {{-- Top Action Header --}}
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-            <flux:heading size="xl" class="font-bold">Stasiun SPKLU</flux:heading>
+            <flux:heading size="xl" class="font-bold">Peta & Titik Charging Station</flux:heading>
             <flux:subheading class="text-zinc-500">
-                Kelola data charging station, titik lokasi, dan tipe colokan beserta status kompatibilitas GB/T
+                Visualisasi titik SPKLU mobil listrik (GB/T AC & DC), deteksi jarak, dan pencarian lokasi charger
             </flux:subheading>
         </div>
-        <div>
+        <div class="flex items-center gap-2">
             <flux:button wire:click="create" variant="primary" icon="plus" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium">
                 Tambah Stasiun
             </flux:button>
         </div>
     </div>
 
-    {{-- Filter & Search Bar --}}
+    {{-- Interactive Leaflet Map & Search Box --}}
+    <flux:card class="p-4 space-y-4 shadow-lg border-zinc-200 dark:border-zinc-800">
+        <div
+            x-data="stationsMap({{ Js::from($allMapStations) }})"
+            class="space-y-3"
+        >
+            {{-- Search Bar & Location Controls --}}
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <form @submit.prevent="searchLocation" class="flex-1 flex items-center gap-2 max-w-lg">
+                    <div class="relative flex-1">
+                        <flux:input
+                            x-model="searchQuery"
+                            placeholder="Cari lokasi di peta (cth: Rest Area KM 57, Senayan, Gambir)..."
+                            icon="magnifying-glass"
+                        />
+                    </div>
+                    <flux:button type="submit" variant="filled" size="sm" icon="magnifying-glass">
+                        <span x-show="!isSearching">Cari</span>
+                        <span x-show="isSearching" style="display: none;">Mencari...</span>
+                    </flux:button>
+                </form>
+
+                <div class="flex items-center gap-2">
+                    <flux:button
+                        type="button"
+                        @click="locateMe"
+                        variant="subtle"
+                        size="sm"
+                        icon="map-pin"
+                        class="text-emerald-600 dark:text-emerald-400 font-medium"
+                    >
+                        Lokasi Mobil Saya
+                    </flux:button>
+                </div>
+            </div>
+
+            {{-- Legend Indicators --}}
+            <div class="flex flex-wrap items-center gap-3 text-xs pt-1 pb-1 text-zinc-600 dark:text-zinc-400 border-b border-zinc-100 dark:border-zinc-800/60">
+                <span class="font-semibold text-zinc-700 dark:text-zinc-300">Status Port:</span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="size-2.5 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50"></span>
+                    GB/T Native (Langsung Colok)
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="size-2.5 rounded-full bg-sky-500 shadow-sm shadow-sky-500/50"></span>
+                    Adaptor OK (Type 2 / CCS2)
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="size-2.5 rounded-full bg-amber-500 shadow-sm shadow-amber-500/50"></span>
+                    Untested (Belum Dites)
+                </span>
+                <span class="inline-flex items-center gap-1.5">
+                    <span class="size-2.5 rounded-full bg-rose-500 shadow-sm shadow-rose-500/50"></span>
+                    Incompatible
+                </span>
+            </div>
+
+            {{-- Map Container --}}
+            <div class="relative w-full h-[400px] sm:h-[450px] rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-800 z-0">
+                <div x-ref="mapContainer" class="w-full h-full"></div>
+            </div>
+        </div>
+    </flux:card>
+
+    {{-- Filter & Search Bar for Table --}}
     <flux:card class="p-4 space-y-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             <div>
                 <flux:input
                     wire:model.live.debounce.300ms="search"
-                    placeholder="Cari stasiun, operator..."
+                    placeholder="Filter tabel nama/alamat..."
                     icon="magnifying-glass"
                     clearable
                 />
@@ -185,7 +249,7 @@
         @endif
     </flux:card>
 
-    {{-- Create / Edit Modal with Repeater Connectors --}}
+    {{-- Create / Edit Modal with Repeater Connectors and Location Picker Map --}}
     <flux:modal name="station-modal" class="md:w-3xl space-y-6">
         <div>
             <flux:heading size="lg" class="font-bold">
@@ -210,6 +274,46 @@
                     <flux:input wire:model="form.operator" placeholder="cth: PLN SPKLU / Shell / Starvo" />
                     <flux:error name="form.operator" />
                 </flux:field>
+
+                {{-- Interactive Map Location Picker --}}
+                <div class="sm:col-span-2 space-y-2">
+                    <div
+                        x-data="locationPickerMap({{ $form->latitude ?? -6.2088 }}, {{ $form->longitude ?? 106.8456 }})"
+                        class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 space-y-2.5"
+                    >
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                            <div>
+                                <flux:label class="text-xs font-bold text-zinc-800 dark:text-zinc-200">
+                                    📍 Pilih Titik Charger di Peta
+                                </flux:label>
+                                <p class="text-[11px] text-zinc-500">
+                                    Klik di peta atau geser pin untuk menentukan koordinat presisi.
+                                </p>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 max-w-xs w-full">
+                                <flux:input
+                                    x-model="pickerSearch"
+                                    placeholder="Cari alamat/nama gedung..."
+                                    size="sm"
+                                    @keydown.enter.prevent="searchPickerLocation"
+                                />
+                                <flux:button
+                                    type="button"
+                                    @click="searchPickerLocation"
+                                    variant="filled"
+                                    size="sm"
+                                >
+                                    Set
+                                </flux:button>
+                            </div>
+                        </div>
+
+                        <div class="w-full h-56 rounded-lg overflow-hidden border border-zinc-300 dark:border-zinc-700 relative z-0">
+                            <div x-ref="pickerMapContainer" class="w-full h-full"></div>
+                        </div>
+                    </div>
+                </div>
 
                 <div class="sm:col-span-2">
                     <flux:field>
