@@ -31,4 +31,3 @@ class UpdateStationRequest extends FormRequest
         ];
     }
 }
-

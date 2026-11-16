@@ -39,4 +39,3 @@ class ConnectorResource extends JsonResource
         ];
     }
 }
-

@@ -132,4 +132,3 @@ test('cannot access connector belonging to different station', function (): void
     $this->getJson("/api/v1/stations/{$station2->id}/connectors/{$connector->id}")
         ->assertNotFound();
 });
-

@@ -88,4 +88,3 @@ test('unauthenticated request to protected endpoint is rejected with 401', funct
     $this->getJson('/api/v1/stations')
         ->assertUnauthorized();
 });
-

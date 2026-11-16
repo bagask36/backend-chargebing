@@ -104,4 +104,3 @@ class ChargingSessionController extends Controller
         ], Response::HTTP_OK);
     }
 }
-

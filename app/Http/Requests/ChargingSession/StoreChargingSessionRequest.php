@@ -34,4 +34,3 @@ class StoreChargingSessionRequest extends FormRequest
         ];
     }
 }
-

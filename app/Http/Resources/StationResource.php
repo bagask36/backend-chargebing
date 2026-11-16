@@ -39,4 +39,3 @@ class StationResource extends JsonResource
         ];
     }
 }
-

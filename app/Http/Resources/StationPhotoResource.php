@@ -30,4 +30,3 @@ class StationPhotoResource extends JsonResource
         ];
     }
 }
-

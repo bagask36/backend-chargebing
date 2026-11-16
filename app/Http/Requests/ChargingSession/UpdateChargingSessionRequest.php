@@ -34,4 +34,3 @@ class UpdateChargingSessionRequest extends FormRequest
         ];
     }
 }
-

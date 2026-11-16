@@ -33,4 +33,3 @@ class UpdateConnectorRequest extends FormRequest
         ];
     }
 }
-

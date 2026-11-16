@@ -144,4 +144,3 @@ test('can delete a charging session', function (): void {
 
     $this->assertDatabaseMissing('charging_sessions', ['id' => $session->id]);
 });
-

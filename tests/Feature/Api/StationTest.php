@@ -191,12 +191,14 @@ test('can filter stations using usable_only=1 for native and adapter_ok connecto
     $stationUntested = Station::factory()->create(['name' => 'Untested Station']);
     Connector::factory()->create([
         'station_id' => $stationUntested->id,
+        'plug_type' => PlugType::CCS2,
         'compat_status' => CompatStatus::UNTESTED,
     ]);
 
     $stationIncompatible = Station::factory()->create(['name' => 'Incompatible Station']);
     Connector::factory()->create([
         'station_id' => $stationIncompatible->id,
+        'plug_type' => PlugType::CHADEMO,
         'compat_status' => CompatStatus::INCOMPATIBLE,
     ]);
 
@@ -252,4 +254,3 @@ test('can sort stations by distance and filter within radius_km using Haversine'
         ->and($names)->not->toContain('Far Karawang Station')
         ->and($data->first()['distance_km'])->toBeLessThan(5.0);
 });
-

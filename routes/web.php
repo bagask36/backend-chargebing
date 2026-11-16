@@ -1,7 +1,29 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Livewire\Auth\Login;
+use App\Livewire\ChargingSessions\SessionIndex;
+use App\Livewire\Dashboard;
+use App\Livewire\Stations\StationIndex;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', function () {
-    return view('welcome');
+// Guest Authentication
+Route::get('/login', Login::class)->name('login');
+
+// Authenticated Admin Routes
+Route::middleware('auth')->group(function (): void {
+    Route::get('/', Dashboard::class)->name('dashboard');
+    Route::get('/stations', StationIndex::class)->name('stations.index');
+    Route::get('/sessions', SessionIndex::class)->name('sessions.index');
+
+    Route::post('/logout', function (Request $request) {
+        Auth::logout();
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    })->name('logout');
 });

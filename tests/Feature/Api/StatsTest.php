@@ -88,4 +88,3 @@ test('can retrieve stats summary with AC and DC metrics breakdown', function ():
     expect($data['current_month']['total_kwh'])->toEqual(55.0)
         ->and($data['current_month']['total_sessions'])->toBe(2);
 });
-
