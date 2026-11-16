@@ -40,4 +40,3 @@ class EvModelResource extends JsonResource
         ];
     }
 }
-

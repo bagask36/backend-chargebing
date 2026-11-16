@@ -1,58 +1,196 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ChargeBing ⚡
+**Backend & Web Admin Personal EV Charging Station Tracker**
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+ChargeBing adalah aplikasi backend dan panel admin pribadi untuk mencatat, memetakan, dan melacak stasiun pengisian kendaraan listrik (SPKLU) serta riwayat pengisian baterai mobil listrik. 
 
-## About Laravel
+Aplikasi ini dirancang khusus untuk kebutuhan pemilik kendaraan listrik dengan spesifikasi port standar **GB/T**:
+- **GB/T DC (Fast Charging)**
+- **GB/T AC (Normal Charging)**
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+Di lapangan, banyak SPKLU menggunakan jenis colokan yang berbeda (Type 2, CCS2, CHAdeMO). ChargeBing mencatat tingkat kompatibilitas colokan tersebut (apakah *native direct*, membutuhkan adaptor/kabel khusus, atau belum pernah dites). Selain itu, ChargeBing menyediakan **REST API** yang siap dikonsumsi langsung oleh aplikasi mobile klien (iOS SwiftUI).
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🛠️ Tech Stack & Arsitektur
 
-## Learning Laravel
+- **Framework**: Laravel 12 (PHP 8.4)
+- **Web Admin UI**: Laravel Livewire 3 + Flux UI *(tanpa library UI eksternal tambahan)*
+- **Peta & Geocoding**: Leaflet JS + OpenStreetMap Tiles + Nominatim API *(100% gratis, tanpa API Key)*
+- **Database**: PostgreSQL 18 (dengan Spatial Index & Haversine Distance Search)
+- **Autentikasi**:
+  - Web: Session Auth single-user (tanpa registrasi publik)
+  - REST API: Laravel Sanctum Bearer Token
+- **Testing**: Pest PHP (54 Tests, 460 Assertions)
+- **Code Style**: Laravel Pint (PSR-12 Compliance)
+- **Containerization**: Docker Compose / Laravel Sail
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+## 📋 Fitur Utama
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
+### 1. Panel Admin Web (Livewire + Flux UI)
+- **Dashboard**: Menampilkan total stasiun, total sesi pengisian, akumulasi kWh, dan total biaya pengisian bulan berjalan yang dipisahkan secara presisi antara mode **AC** dan **DC**, serta daftar 5 sesi pengisian terbaru.
+- **Peta & Titik Stasiun SPKLU (`/stations`)**:
+  - Visualisasi peta interaktif dengan pin stasiun berkode warna:
+    - 🟢 **GB/T Native**: Langsung colok tanpa adaptor
+    - 🔵 **Adaptor OK**: Kompatibel dengan adaptor (Type 2 / CCS2 to GB/T)
+    - 🟡 **Untested**: Belum pernah dicoba
+    - 🔴 **Incompatible**: Tidak cocok
+  - Fitur pencarian lokasi dengan **live auto-suggestion / autocomplete** dan deteksi lokasi mobil (*geolocation*).
+  - Modal form interaktif lebar (`max-w-5xl`) dengan picker peta (klik atau geser pin langsung mengisi koordinat Latitude/Longitude dan alamat otomatis).
+  - Repeater colokan (konektor) untuk mengelola banyak port dalam satu stasiun (tipe colokan, arus AC/DC, daya kW, jumlah unit, status kompatibilitas, dan catatan adaptor).
+- **Sesi Pengisian Baterai (`/sessions`)**:
+  - Pencatatan sesi pengisian: stasiun, colokan yang dipakai, mobil yang diisi, waktu mulai/selesai, energi (kWh), biaya (Rp), dan persentase baterai awal & akhir (*State of Charge / SoC*).
+  - Filter interaktif berdasarkan mode (AC / DC), stasiun, dan rentang tanggal.
+- **Master Data Mobil Listrik (`/ev-models`)**:
+  - Katalog spesifikasi mobil listrik di Indonesia (Wuling, Hyundai, BYD, Chery, MG, Neta, Seres, VinFast, dll).
+  - Mencakup kapasitas baterai (kWh), estimasi jarak tempuh (km), colokan AC (daya max kW), dan colokan DC fast charging (daya max kW).
 
-## Agentic Development
+### 2. REST API untuk Mobile App iOS (SwiftUI)
+- Prefix `/api/v1` dengan autentikasi Sanctum Bearer token.
+- `POST /api/v1/auth/login` (dilengkapi rate limiter 5 req/menit).
+- `GET /api/v1/me` & `PUT /api/v1/me` (mengambil profil dan memilih tipe mobil listrik aktif pemilik).
+- `GET /api/v1/ev-models?all=1` (mengambil katalog mobil listrik untuk SwiftUI `Picker`).
+- `GET /api/v1/stations` (mendukung filter `current_type=AC|DC`, `plug_type`, `compat_status`, `usable_only=1`, pencarian teks `q`, serta kalkulasi jarak radius Haversine `lat`, `lng`, `radius_km`).
+- CRUD lengkap untuk stasiun, konektor, dan sesi pengisian.
+- `GET /api/v1/stats/summary` (agregasi konsumsi energi dan pengeluaran per bulan dipisah AC vs DC).
 
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
+Dokumentasi lengkap dan contoh JSON Request/Response tersedia di [docs/API.md](docs/API.md).
 
+---
+
+## ⚙️ Prasyarat Sistem
+
+- **Docker** dan **Docker Compose** (atau OrbStack / Docker Desktop)
+- **Node.js 20+** & **npm** (untuk build aset frontend)
+- Git
+
+*(PHP & PostgreSQL dijalankan secara terisolasi di dalam container Docker Sail)*
+
+---
+
+## 🚀 Panduan Instalasi & Menjalankan Aplikasi
+
+### 1. Clone Repositori
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+git clone <repository-url> backend-chargebing
+cd backend-chargebing
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 2. Konfigurasi Environment (`.env`)
+Salin file `.env.example` ke `.env`:
+```bash
+cp .env.example .env
+```
 
-## Contributing
+Pastikan variabel environment berikut terkonfigurasi (default sudah disesuaikan agar tidak bentrok dengan port lokal lain):
+```env
+APP_NAME="ChargeBing"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://localhost:8080
+APP_PORT=8080
+VITE_PORT=5174
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+DB_CONNECTION=pgsql
+DB_HOST=pgsql
+DB_PORT=5432
+DB_DATABASE=chargebing
+DB_USERNAME=sail
+DB_PASSWORD=password
 
-## Code of Conduct
+# Kredensial Akun Pemilik (Admin Tunggal)
+ADMIN_NAME="Bagas"
+ADMIN_EMAIL="admin@chargebing.local"
+ADMIN_PASSWORD="password123"
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 3. Jalankan Docker Container
+Jalankan container aplikasi (Laravel 12) dan database (PostgreSQL 18):
+```bash
+docker compose up -d
+```
+*Atau jika menggunakan binary Sail:*
+```bash
+./vendor/bin/sail up -d
+```
 
-## Security Vulnerabilities
+### 4. Install Dependensi & Generate App Key
+```bash
+docker compose exec laravel.test composer install
+docker compose exec laravel.test php artisan key:generate
+npm install
+npm run build
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 5. Jalankan Migrasi & Database Seeder
+Jalankan migrasi database PostgreSQL beserta data awal (admin user, stasiun realistis di Jabodetabek, katalog mobil listrik, dan riwayat sesi pengisian):
+```bash
+docker compose exec laravel.test php artisan migrate:fresh --seed
+```
 
-## License
+---
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+## 🔑 Akses & Kredensial Default
+
+Setelah container berjalan:
+- **Web Admin URL**: [http://localhost:8080](http://localhost:8080)
+- **Halaman Login**: [http://localhost:8080/login](http://localhost:8080/login)
+- **Email**: `admin@chargebing.local`
+- **Password**: `password123`
+
+---
+
+## 🧪 Menjalankan Automated Test Suite
+
+Aplikasi telah dilengkapi feature test komprehensif menggunakan **Pest PHP**:
+```bash
+docker compose exec laravel.test ./vendor/bin/pest
+```
+
+Hasil pengujian mencakup 54 skenario pengetesan (460 assertions) meliputi:
+- Autentikasi web & API token (login, rate limit, logout, profile).
+- CRUD Stasiun, repeater konektor, dan kalkulasi jarak Haversine.
+- Filter mode pengisian AC/DC, plug type, dan status kompatibilitas GB/T.
+- Agregasi statistik sesi pengisian baterai dan akumulasi biaya.
+- Master katalog mobil listrik dan pemilihan mobil aktif.
+
+### Pemeriksaan Code Formatting (PSR-12)
+```bash
+./vendor/bin/pint --test
+```
+
+---
+
+## 📂 Struktur Direktori Utama
+
+```
+app/
+├── Enums/                     # Backed Enum: CurrentType, PlugType, CompatStatus
+├── Http/
+│   ├── Controllers/Api/V1/    # REST API Controllers (Sanctum)
+│   ├── Requests/              # Form Requests Validation
+│   └── Resources/             # API Resources (JSON Transformation)
+├── Livewire/
+│   ├── Auth/                  # Login Livewire Component
+│   ├── ChargingSessions/      # CRUD Sesi Pengisian
+│   ├── EvModels/              # CRUD Master Data Mobil Listrik
+│   ├── Forms/                 # Livewire Form Objects
+│   ├── Stations/              # Peta & CRUD Stasiun SPKLU
+│   └── Dashboard.php          # Dashboard Metrik & Statistik
+└── Models/                    # Station, Connector, ChargingSession, EvModel, User
+
+docs/
+└── API.md                     # Dokumentasi REST API Lengkap untuk iOS SwiftUI
+
+resources/
+├── js/                        # Leaflet Maps & Autocomplete Suggestions
+└── views/
+    ├── components/layouts/    # Layouts Web Admin (App & Guest)
+    └── livewire/              # Tampilan Blade dengan Komponen Flux UI
+```
+
+---
+
+## 📄 Lisensi
+Proyek ini dibuat untuk keperluan pribadi dan pengembangan aplikasi pelacak pengisian kendaraan listrik.

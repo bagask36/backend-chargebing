@@ -117,4 +117,3 @@ class EvModelForm extends Form
         $this->is_active = true;
     }
 }
-

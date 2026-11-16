@@ -21,6 +21,17 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/sessions', SessionIndex::class)->name('sessions.index');
     Route::get('/ev-models', EvModelIndex::class)->name('ev-models.index');
 
+    Route::get('/docs/api', function () {
+        $path = base_path('docs/API.md');
+        if (! file_exists($path)) {
+            abort(404);
+        }
+
+        return response(file_get_contents($path), 200, [
+            'Content-Type' => 'text/markdown; charset=UTF-8',
+        ]);
+    })->name('docs.api');
+
     Route::post('/logout', function (Request $request) {
         Auth::logout();
         $request->session()->invalidate();

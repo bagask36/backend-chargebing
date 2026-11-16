@@ -40,4 +40,3 @@ class StoreEvModelRequest extends FormRequest
         ];
     }
 }
-

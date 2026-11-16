@@ -39,4 +39,3 @@ class EvModelFactory extends Factory
         ]);
     }
 }
-

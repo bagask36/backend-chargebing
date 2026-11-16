@@ -40,4 +40,3 @@ class UpdateEvModelRequest extends FormRequest
         ];
     }
 }
-

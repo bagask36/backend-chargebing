@@ -185,4 +185,3 @@ test('user can select their active EV model via PUT /api/v1/me and retrieve prof
         ->assertJsonPath('user.ev_model_id', $car->id)
         ->assertJsonPath('user.ev_model.model_name', 'BinguoEV');
 });
-
