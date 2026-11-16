@@ -54,6 +54,12 @@ return [
 
     'url' => env('APP_URL', 'http://localhost'),
 
+    'admin' => [
+        'name' => env('ADMIN_NAME', 'Admin ChargeBing'),
+        'email' => env('ADMIN_EMAIL', 'admin@chargebing.local'),
+        'password' => env('ADMIN_PASSWORD', 'password123'),
+    ],
+
     /*
     |--------------------------------------------------------------------------
     | Application Timezone

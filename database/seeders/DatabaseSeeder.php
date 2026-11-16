@@ -29,10 +29,10 @@ class DatabaseSeeder extends Seeder
             ->where('variant', '410 km')
             ->first();
 
-        // 2. Seed Single Admin User from .env
-        $adminEmail = env('ADMIN_EMAIL', 'admin@chargebing.local');
-        $adminPassword = env('ADMIN_PASSWORD', 'password123');
-        $adminName = env('ADMIN_NAME', 'Admin ChargeBing');
+        // 2. Seed Single Admin User from config/env
+        $adminEmail = config('app.admin.email') ?: env('ADMIN_EMAIL', 'admin@chargebing.local');
+        $adminPassword = config('app.admin.password') ?: env('ADMIN_PASSWORD', 'password123');
+        $adminName = config('app.admin.name') ?: env('ADMIN_NAME', 'Admin ChargeBing');
 
         User::updateOrCreate(
             ['email' => $adminEmail],
