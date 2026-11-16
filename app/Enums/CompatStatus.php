@@ -28,4 +28,3 @@ enum CompatStatus: string
         return in_array($this, [self::NATIVE, self::ADAPTER_OK], true);
     }
 }
-

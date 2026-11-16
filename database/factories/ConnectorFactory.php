@@ -69,4 +69,3 @@ class ConnectorFactory extends Factory
         ]);
     }
 }
-

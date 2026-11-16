@@ -62,4 +62,3 @@ class ChargingSession extends Model
         return $this->belongsTo(Connector::class);
     }
 }
-

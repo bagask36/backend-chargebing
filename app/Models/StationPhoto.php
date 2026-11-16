@@ -27,4 +27,3 @@ class StationPhoto extends Model
         return $this->belongsTo(Station::class);
     }
 }
-

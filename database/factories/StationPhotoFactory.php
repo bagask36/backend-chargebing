@@ -28,4 +28,3 @@ class StationPhotoFactory extends Factory
         ];
     }
 }
-

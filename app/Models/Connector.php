@@ -73,4 +73,3 @@ class Connector extends Model
         return $this->hasMany(ChargingSession::class);
     }
 }
-

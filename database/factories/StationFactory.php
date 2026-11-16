@@ -34,4 +34,3 @@ class StationFactory extends Factory
         ];
     }
 }
-

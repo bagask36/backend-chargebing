@@ -110,4 +110,3 @@ class Station extends Model
         return $query->whereRaw("{$haversine} <= ?", [$latitude, $longitude, $latitude, $radiusKm]);
     }
 }
-
