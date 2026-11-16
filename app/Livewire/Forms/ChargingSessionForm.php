@@ -7,6 +7,7 @@ namespace App\Livewire\Forms;
 use App\Enums\CurrentType;
 use App\Models\ChargingSession;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Form;
 
@@ -17,6 +18,8 @@ class ChargingSessionForm extends Form
     public ?int $station_id = null;
 
     public ?int $connector_id = null;
+
+    public ?int $ev_model_id = null;
 
     public string $charging_mode = 'DC';
 
@@ -42,6 +45,7 @@ class ChargingSessionForm extends Form
         return [
             'station_id' => ['required', 'integer', 'exists:stations,id'],
             'connector_id' => ['nullable', 'integer', 'exists:connectors,id'],
+            'ev_model_id' => ['nullable', 'integer', 'exists:ev_models,id'],
             'charging_mode' => ['required', Rule::enum(CurrentType::class)],
             'started_at' => ['required', 'date'],
             'ended_at' => ['nullable', 'date', 'after_or_equal:started_at'],
@@ -58,6 +62,7 @@ class ChargingSessionForm extends Form
         $this->session = $session;
         $this->station_id = $session->station_id;
         $this->connector_id = $session->connector_id;
+        $this->ev_model_id = $session->ev_model_id;
         $this->charging_mode = $session->charging_mode->value;
         $this->started_at = $session->started_at?->format('Y-m-d\TH:i') ?? '';
         $this->ended_at = $session->ended_at?->format('Y-m-d\TH:i') ?? '';
@@ -73,6 +78,7 @@ class ChargingSessionForm extends Form
         $this->session = null;
         $this->station_id = $defaultStationId;
         $this->connector_id = null;
+        $this->ev_model_id = Auth::user()?->ev_model_id;
         $this->charging_mode = CurrentType::DC->value;
         $this->started_at = Carbon::now()->subMinutes(45)->format('Y-m-d\TH:i');
         $this->ended_at = Carbon::now()->format('Y-m-d\TH:i');
@@ -90,6 +96,7 @@ class ChargingSessionForm extends Form
         return ChargingSession::create([
             'station_id' => $this->station_id,
             'connector_id' => $this->connector_id,
+            'ev_model_id' => $this->ev_model_id,
             'charging_mode' => $this->charging_mode,
             'started_at' => $this->started_at,
             'ended_at' => filled($this->ended_at) ? $this->ended_at : null,
@@ -108,6 +115,7 @@ class ChargingSessionForm extends Form
         $this->session->update([
             'station_id' => $this->station_id,
             'connector_id' => $this->connector_id,
+            'ev_model_id' => $this->ev_model_id,
             'charging_mode' => $this->charging_mode,
             'started_at' => $this->started_at,
             'ended_at' => filled($this->ended_at) ? $this->ended_at : null,

@@ -55,12 +55,31 @@ class AuthController extends Controller
     }
 
     /**
-     * Get the authenticated user's profile.
+     * Get the authenticated user's profile with active EV model.
      */
     public function me(Request $request): JsonResponse
     {
         return response()->json([
-            'user' => new UserResource($request->user()),
+            'user' => new UserResource($request->user()->load('evModel')),
+        ], Response::HTTP_OK);
+    }
+
+    /**
+     * Update the authenticated user's profile and active EV model.
+     */
+    public function updateProfile(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'name' => ['sometimes', 'string', 'max:255'],
+            'ev_model_id' => ['sometimes', 'nullable', 'exists:ev_models,id'],
+        ]);
+
+        $user = $request->user();
+        $user->update($validated);
+
+        return response()->json([
+            'message' => 'Profile updated successfully.',
+            'user' => new UserResource($user->load('evModel')),
         ], Response::HTTP_OK);
     }
 }

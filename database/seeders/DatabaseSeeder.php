@@ -8,6 +8,7 @@ use App\Enums\CompatStatus;
 use App\Enums\CurrentType;
 use App\Enums\PlugType;
 use App\Models\ChargingSession;
+use App\Models\EvModel;
 use App\Models\Station;
 use App\Models\User;
 use Carbon\Carbon;
@@ -20,7 +21,15 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // 1. Seed Single Admin User from .env
+        // 1. Seed EV Models in Indonesia
+        $this->call(EvModelSeeder::class);
+
+        $defaultCar = EvModel::where('brand', 'Wuling')
+            ->where('model_name', 'BinguoEV')
+            ->where('variant', '410 km')
+            ->first();
+
+        // 2. Seed Single Admin User from .env
         $adminEmail = env('ADMIN_EMAIL', 'admin@chargebing.local');
         $adminPassword = env('ADMIN_PASSWORD', 'password123');
         $adminName = env('ADMIN_NAME', 'Admin ChargeBing');
@@ -31,6 +40,7 @@ class DatabaseSeeder extends Seeder
                 'name' => $adminName,
                 'password' => bcrypt($adminPassword),
                 'email_verified_at' => now(),
+                'ev_model_id' => $defaultCar?->id,
             ]
         );
 

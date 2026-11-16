@@ -37,6 +37,9 @@
             <flux:navlist.item icon="bolt" href="/sessions" :current="request()->is('sessions*')" wire:navigate>
                 Sesi Pengisian
             </flux:navlist.item>
+            <flux:navlist.item icon="truck" href="/ev-models" :current="request()->is('ev-models*')" wire:navigate>
+                Master Mobil Listrik
+            </flux:navlist.item>
         </flux:navlist>
 
         <flux:spacer />

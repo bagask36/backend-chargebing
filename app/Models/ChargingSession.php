@@ -18,6 +18,7 @@ class ChargingSession extends Model
     protected $fillable = [
         'station_id',
         'connector_id',
+        'ev_model_id',
         'charging_mode',
         'started_at',
         'ended_at',
@@ -60,5 +61,13 @@ class ChargingSession extends Model
     public function connector(): BelongsTo
     {
         return $this->belongsTo(Connector::class);
+    }
+
+    /**
+     * @return BelongsTo<EvModel, $this>
+     */
+    public function evModel(): BelongsTo
+    {
+        return $this->belongsTo(EvModel::class);
     }
 }

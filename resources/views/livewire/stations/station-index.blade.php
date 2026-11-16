@@ -273,7 +273,7 @@
     </flux:card>
 
     {{-- Create / Edit Modal with Repeater Connectors and Location Picker Map --}}
-    <flux:modal name="station-modal" class="md:w-3xl space-y-6">
+    <flux:modal name="station-modal" class="w-full max-w-4xl lg:max-w-5xl space-y-6">
         <div>
             <flux:heading size="lg" class="font-bold">
                 {{ $form->station ? 'Edit Stasiun SPKLU' : 'Tambah Stasiun SPKLU Baru' }}
@@ -367,8 +367,8 @@
                             </div>
                         </div>
 
-                        <div wire:ignore class="w-full h-56 rounded-lg overflow-hidden border border-zinc-300 dark:border-zinc-700 relative z-0">
-                            <div x-ref="pickerMapContainer" class="w-full h-full min-h-[224px]"></div>
+                        <div wire:ignore class="w-full h-72 sm:h-80 rounded-lg overflow-hidden border border-zinc-300 dark:border-zinc-700 relative z-0">
+                            <div x-ref="pickerMapContainer" class="w-full h-full min-h-[288px]"></div>
                         </div>
                     </div>
                 </div>

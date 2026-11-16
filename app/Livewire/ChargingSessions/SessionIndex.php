@@ -6,6 +6,7 @@ namespace App\Livewire\ChargingSessions;
 
 use App\Livewire\Forms\ChargingSessionForm;
 use App\Models\ChargingSession;
+use App\Models\EvModel;
 use App\Models\Station;
 use Carbon\Carbon;
 use Flux;
@@ -151,6 +152,7 @@ class SessionIndex extends Component
 
         $sessions = $query->orderByDesc('started_at')->paginate(10);
         $allStations = Station::orderBy('name')->get();
+        $allEvModels = EvModel::active()->orderBy('brand')->orderBy('model_name')->get();
 
         $selectedStation = $this->form->station_id ? Station::with('connectors')->find($this->form->station_id) : null;
         $availableConnectors = $selectedStation?->connectors ?? new Collection;
@@ -158,6 +160,7 @@ class SessionIndex extends Component
         return view('livewire.charging-sessions.session-index', [
             'sessions' => $sessions,
             'allStations' => $allStations,
+            'allEvModels' => $allEvModels,
             'availableConnectors' => $availableConnectors,
         ]);
     }

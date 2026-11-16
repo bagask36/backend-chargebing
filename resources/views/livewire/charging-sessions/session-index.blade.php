@@ -88,6 +88,11 @@
                                         {{ $session->station->operator ?? '-' }}
                                     @endif
                                 </div>
+                                @if ($session->evModel)
+                                    <div class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
+                                        🚗 {{ $session->evModel->brand }} {{ $session->evModel->model_name }}
+                                    </div>
+                                @endif
                             </flux:table.cell>
 
                             {{-- Mode --}}
@@ -173,7 +178,7 @@
     </flux:card>
 
     {{-- Create / Edit Modal --}}
-    <flux:modal name="session-modal" class="md:w-2xl space-y-6">
+    <flux:modal name="session-modal" class="w-full max-w-3xl lg:max-w-4xl space-y-6">
         <div>
             <flux:heading size="lg" class="font-bold">
                 {{ $form->session ? 'Edit Sesi Pengisian' : 'Catat Sesi Pengisian Baru' }}
@@ -185,6 +190,22 @@
 
         <form wire:submit="save" class="space-y-5">
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {{-- Vehicle Model --}}
+                <div class="sm:col-span-2">
+                    <flux:field>
+                        <flux:label>Mobil Listrik (EV)</flux:label>
+                        <flux:select wire:model="form.ev_model_id">
+                            <flux:select.option value="">Pilih Mobil (Opsional / Default)</flux:select.option>
+                            @foreach ($allEvModels as $car)
+                                <flux:select.option value="{{ $car->id }}">
+                                    {{ $car->brand }} {{ $car->model_name }} {{ $car->variant ? "({$car->variant})" : '' }} • {{ (float)$car->battery_capacity_kwh }} kWh ({{ $car->range_km }} km)
+                                </flux:select.option>
+                            @endforeach
+                        </flux:select>
+                        <flux:error name="form.ev_model_id" />
+                    </flux:field>
+                </div>
+
                 {{-- Station --}}
                 <div class="sm:col-span-2">
                     <flux:field>

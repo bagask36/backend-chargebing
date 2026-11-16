@@ -24,6 +24,8 @@ class UserResource extends JsonResource
             'id' => $this->id,
             'name' => $this->name,
             'email' => $this->email,
+            'ev_model_id' => $this->ev_model_id,
+            'ev_model' => $this->whenLoaded('evModel', fn () => new EvModelResource($this->evModel)),
             'created_at' => $this->created_at?->toISOString(),
         ];
     }

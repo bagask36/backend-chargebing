@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
 use App\Http\Controllers\Api\V1\ChargingSessionController;
+use App\Http\Controllers\Api\V1\EvModelController;
 use App\Http\Controllers\Api\V1\StationConnectorController;
 use App\Http\Controllers\Api\V1\StationController;
 use App\Http\Controllers\Api\V1\StatsController;
@@ -21,6 +22,10 @@ Route::prefix('v1')->group(function (): void {
         Route::post('/auth/logout', [AuthController::class, 'logout'])->name('api.v1.auth.logout');
         Route::get('/auth/me', [AuthController::class, 'me'])->name('api.v1.auth.me');
         Route::get('/me', [AuthController::class, 'me'])->name('api.v1.me');
+        Route::match(['put', 'patch'], '/me', [AuthController::class, 'updateProfile'])->name('api.v1.me.update');
+
+        // EV Models (Mobil Listrik Master Data)
+        Route::apiResource('ev-models', EvModelController::class)->names('api.v1.ev-models');
 
         // Charging Stations
         Route::apiResource('stations', StationController::class)->names('api.v1.stations');
