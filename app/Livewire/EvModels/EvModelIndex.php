@@ -82,6 +82,7 @@ class EvModelIndex extends Component
 
         Flux::modal('ev-model-modal')->close();
         $this->form->resetForm();
+        $this->dispatch('pg:eventRefresh-ev_models_powergrid_table');
     }
 
     public function toggleStatus(int $id): void
@@ -93,6 +94,7 @@ class EvModelIndex extends Component
             text: $evModel->is_active ? 'Mobil listrik diaktifkan.' : 'Mobil listrik dinonaktifkan.',
             variant: 'info',
         );
+        $this->dispatch('pg:eventRefresh-ev_models_powergrid_table');
     }
 
     public function delete(int $id): void
@@ -104,6 +106,7 @@ class EvModelIndex extends Component
             text: 'Data mobil listrik berhasil dihapus.',
             variant: 'success',
         );
+        $this->dispatch('pg:eventRefresh-ev_models_powergrid_table');
     }
 
     public function render(): View

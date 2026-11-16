@@ -99,6 +99,7 @@ class StationIndex extends Component
         }
 
         Flux::modal('station-modal')->close();
+        $this->dispatch('pg:eventRefresh-stations_powergrid_table');
     }
 
     public function delete(Station $station): void
@@ -108,6 +109,7 @@ class StationIndex extends Component
             text: 'Stasiun berhasil dihapus!',
             variant: 'danger'
         );
+        $this->dispatch('pg:eventRefresh-stations_powergrid_table');
     }
 
     public function toggleFavorite(Station $station): void
@@ -117,6 +119,7 @@ class StationIndex extends Component
             text: $station->is_favorite ? 'Ditambahkan ke favorit' : 'Dihapus dari favorit',
             variant: 'info'
         );
+        $this->dispatch('pg:eventRefresh-stations_powergrid_table');
     }
 
     public function addConnector(): void

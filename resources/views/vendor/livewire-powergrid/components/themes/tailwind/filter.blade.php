@@ -1,0 +1,108 @@
+@props([
+    'theme' => null,
+    'tableName' => null,
+    'filtersFromColumns' => null,
+    '__partial' => null,
+    'openOnLoad' => false,
+])
+
+@php
+    $__partial = $__partial ?? (isset($this) ? $this : null);
+    $tableName = $tableName ?? $__partial->tableName;
+
+    $element = $__partial->headerElement('filters');
+
+    $columns = $__partial->filterPanelColumns();
+    $gridClass = match ($columns) {
+        3 => 'grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4',
+        2 => 'grid grid-cols-1 sm:grid-cols-2 gap-4',
+        default => 'grid grid-cols-1 gap-4',
+    };
+@endphp
+
+<div
+    x-data="pgFilterPanel"
+    data-open-on-load="{{ $openOnLoad ? 'true' : 'false' }}"
+    wire:key="pg-filter-dropdown-{{ $tableName }}"
+    class="{{ theme('filter.dropdown.wrapper') }}"
+>
+    <button
+        type="button"
+        x-on:click="toggle()"
+        data-cy="filter-dropdown-trigger"
+        title="{{ $element['title'] }}"
+        aria-label="{{ $element['title'] }}"
+        class="{{ theme('filter.dropdown.trigger', theme('header.filters.button')) }}"
+    >
+        {!! $element['iconHtml'] !!}
+        <span
+            x-cloak
+            x-show="badgeCount() > 0"
+            x-text="badgeCount()"
+            data-cy="filter-dropdown-badge"
+            class="{{ theme('filter.dropdown.badge') }}"
+        ></span>
+    </button>
+
+    <div
+        x-show="open"
+        x-cloak
+        style="display: none"
+        x-transition:enter="transition ease-out duration-150"
+        x-transition:enter-start="opacity-0 -translate-y-1"
+        x-transition:enter-end="opacity-100 translate-y-0"
+        x-transition:leave="transition ease-in duration-100"
+        x-transition:leave-start="opacity-100 translate-y-0"
+        x-transition:leave-end="opacity-0 -translate-y-1"
+        x-on:click.outside="closeOnOutside($event)"
+        x-on:keydown.escape.window.capture="closeOnEscape()"
+        role="dialog"
+        aria-modal="true"
+        data-cy="filter-dropdown-panel"
+        data-columns="{{ $columns }}"
+        class="{{ theme('filter.dropdown.panel') }}"
+    >
+        <div class="{{ theme('filter.dropdown.header') }}">
+            <span class="{{ theme('filter.dropdown.title') }}">
+                {{ trans('livewire-powergrid::datatable.buttons.filters_title') }}
+            </span>
+        </div>
+
+        <div
+            data-cy="filter-dropdown-body"
+            class="{{ theme('filter.dropdown.body') }}"
+        >
+            @include('livewire-powergrid::components.themes.tailwind.filters.fields', [
+                'theme' => $theme,
+                'tableName' => $tableName,
+                'filtersFromColumns' => $filtersFromColumns ?? null,
+                'gridClass' => $gridClass,
+                '__partial' => $__partial,
+            ])
+        </div>
+
+        <div
+            data-cy="filter-dropdown-footer"
+            class="{{ theme('filter.dropdown.footer') }}"
+        >
+            <button
+                type="button"
+                data-cy="filter-dropdown-reset"
+                x-on:click="clearAll()"
+                class="{{ theme('filter.dropdown.reset') }} me-auto"
+            >
+                {{ trans('livewire-powergrid::datatable.buttons.reset_filters') }}
+            </button>
+
+            <button
+                type="button"
+                data-cy="filter-dropdown-apply"
+                x-on:pointerdown.prevent="apply()"
+                x-on:click="if ($event.detail === 0) apply()"
+                class="{{ theme('filter.dropdown.apply') }}"
+            >
+                {{ trans('livewire-powergrid::datatable.buttons.apply_filters') }}
+            </button>
+        </div>
+    </div>
+</div>

@@ -89,6 +89,7 @@ class SessionIndex extends Component
         }
 
         Flux::modal('session-modal')->close();
+        $this->dispatch('pg:eventRefresh-charging_sessions_powergrid_table');
     }
 
     public function delete(ChargingSession $session): void
@@ -98,6 +99,7 @@ class SessionIndex extends Component
             text: 'Sesi pengisian berhasil dihapus!',
             variant: 'danger'
         );
+        $this->dispatch('pg:eventRefresh-charging_sessions_powergrid_table');
     }
 
     public function updatedFormStationId(): void

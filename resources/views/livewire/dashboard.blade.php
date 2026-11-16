@@ -103,76 +103,8 @@
 
         <flux:separator />
 
-        <div class="overflow-x-auto">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Tanggal & Waktu</flux:table.column>
-                    <flux:table.column>Stasiun SPKLU</flux:table.column>
-                    <flux:table.column>Mode</flux:table.column>
-                    <flux:table.column>Energi (kWh)</flux:table.column>
-                    <flux:table.column>Biaya (Rp)</flux:table.column>
-                    <flux:table.column>State of Charge (SoC)</flux:table.column>
-                    <flux:table.column>Catatan</flux:table.column>
-                </flux:table.columns>
-
-                <flux:table.rows>
-                    @forelse ($recentSessions as $session)
-                        <flux:table.row :key="$session->id">
-                            <flux:table.cell class="whitespace-nowrap font-medium">
-                                {{ $session->started_at?->format('d M Y, H:i') }}
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                <div class="font-medium text-zinc-900 dark:text-white">
-                                    {{ $session->station->name }}
-                                </div>
-                                <div class="text-xs text-zinc-400">
-                                    {{ $session->station->operator ?? 'Independen' }}
-                                </div>
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                @if ($session->charging_mode->value === 'DC')
-                                    <flux:badge color="emerald" size="sm">DC Fast</flux:badge>
-                                @else
-                                    <flux:badge color="sky" size="sm">AC Normal</flux:badge>
-                                @endif
-                            </flux:table.cell>
-
-                            <flux:table.cell class="font-semibold">
-                                {{ number_format((float) $session->kwh, 2, ',', '.') }} kWh
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                {{ $session->cost !== null ? 'Rp ' . number_format((float) $session->cost, 0, ',', '.') : '-' }}
-                            </flux:table.cell>
-
-                            <flux:table.cell>
-                                @if ($session->soc_start !== null && $session->soc_end !== null)
-                                    <div class="flex items-center gap-1.5 text-xs">
-                                        <span class="text-zinc-400">{{ $session->soc_start }}%</span>
-                                        <span>→</span>
-                                        <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ $session->soc_end }}%</span>
-                                        <span class="text-zinc-400">(+{{ $session->soc_end - $session->soc_start }}%)</span>
-                                    </div>
-                                @else
-                                    <span class="text-zinc-400">-</span>
-                                @endif
-                            </flux:table.cell>
-
-                            <flux:table.cell class="text-xs text-zinc-500 max-w-xs truncate">
-                                {{ $session->notes ?? '-' }}
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @empty
-                        <flux:table.row>
-                            <flux:table.cell colspan="7" class="text-center py-6 text-zinc-400">
-                                Belum ada riwayat sesi pengisian.
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforelse
-                </flux:table.rows>
-            </flux:table>
+        <div>
+            <livewire:tables.recent-charging-session-table />
         </div>
     </flux:card>
 </div>

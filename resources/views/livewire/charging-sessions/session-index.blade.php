@@ -42,139 +42,17 @@
                 <flux:input wire:model.live="started_until" type="date" placeholder="Sampai Tanggal" />
             </div>
         </div>
-    </flux:card>
 
-    {{-- Sessions Table --}}
-    <flux:card class="p-0 overflow-hidden">
-        <div class="overflow-x-auto">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column>Waktu Pengisian</flux:table.column>
-                    <flux:table.column>Stasiun & Colokan</flux:table.column>
-                    <flux:table.column>Mode</flux:table.column>
-                    <flux:table.column>Energi</flux:table.column>
-                    <flux:table.column>Biaya</flux:table.column>
-                    <flux:table.column>SoC Baterai</flux:table.column>
-                    <flux:table.column>Catatan</flux:table.column>
-                    <flux:table.column class="text-right">Aksi</flux:table.column>
-                </flux:table.columns>
-
-                <flux:table.rows>
-                    @forelse ($sessions as $session)
-                        <flux:table.row :key="$session->id">
-                            {{-- Time & Duration --}}
-                            <flux:table.cell class="whitespace-nowrap">
-                                <div class="font-medium text-zinc-900 dark:text-white">
-                                    {{ $session->started_at?->format('d M Y, H:i') }}
-                                </div>
-                                <div class="text-xs text-zinc-400">
-                                    @if ($session->ended_at)
-                                        Durasi: {{ $session->started_at->diffInMinutes($session->ended_at) }} menit
-                                    @else
-                                        Sedang Berlangsung...
-                                    @endif
-                                </div>
-                            </flux:table.cell>
-
-                            {{-- Station & Connector --}}
-                            <flux:table.cell>
-                                <div class="font-semibold text-zinc-900 dark:text-white">
-                                    {{ $session->station->name }}
-                                </div>
-                                <div class="text-xs text-zinc-400">
-                                    @if ($session->connector)
-                                        {{ $session->connector->plug_type->value }} ({{ (int)$session->connector->power_kw }} kW) • {{ $session->connector->compat_status->label() }}
-                                    @else
-                                        {{ $session->station->operator ?? '-' }}
-                                    @endif
-                                </div>
-                                @if ($session->evModel)
-                                    <div class="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium mt-0.5">
-                                        🚗 {{ $session->evModel->brand }} {{ $session->evModel->model_name }}
-                                    </div>
-                                @endif
-                            </flux:table.cell>
-
-                            {{-- Mode --}}
-                            <flux:table.cell>
-                                @if ($session->charging_mode->value === 'DC')
-                                    <flux:badge color="emerald" size="sm">DC Fast</flux:badge>
-                                @else
-                                    <flux:badge color="sky" size="sm">AC Normal</flux:badge>
-                                @endif
-                            </flux:table.cell>
-
-                            {{-- Energy (kWh) --}}
-                            <flux:table.cell class="font-bold">
-                                {{ number_format((float) $session->kwh, 2, ',', '.') }} kWh
-                            </flux:table.cell>
-
-                            {{-- Cost --}}
-                            <flux:table.cell>
-                                @if ($session->cost !== null)
-                                    Rp {{ number_format((float) $session->cost, 0, ',', '.') }}
-                                @else
-                                    <span class="text-zinc-400 italic">Gratis / Belum Ada</span>
-                                @endif
-                            </flux:table.cell>
-
-                            {{-- SoC --}}
-                            <flux:table.cell>
-                                @if ($session->soc_start !== null && $session->soc_end !== null)
-                                    <div class="flex items-center gap-1.5 text-xs">
-                                        <span class="text-zinc-400">{{ $session->soc_start }}%</span>
-                                        <span>→</span>
-                                        <span class="font-bold text-emerald-600 dark:text-emerald-400">{{ $session->soc_end }}%</span>
-                                        <span class="text-zinc-400">(+{{ $session->soc_end - $session->soc_start }}%)</span>
-                                    </div>
-                                @else
-                                    <span class="text-zinc-400">-</span>
-                                @endif
-                            </flux:table.cell>
-
-                            {{-- Notes --}}
-                            <flux:table.cell class="text-xs text-zinc-500 max-w-xs truncate">
-                                {{ $session->notes ?? '-' }}
-                            </flux:table.cell>
-
-                            {{-- Actions --}}
-                            <flux:table.cell class="text-right">
-                                <div class="inline-flex items-center gap-1">
-                                    <flux:button
-                                        wire:click="edit({{ $session->id }})"
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="pencil-square"
-                                        title="Edit"
-                                    />
-                                    <flux:button
-                                        wire:click="delete({{ $session->id }})"
-                                        wire:confirm="Yakin ingin menghapus sesi pengisian ini?"
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="trash"
-                                        class="text-rose-600 hover:text-rose-700 dark:text-rose-400"
-                                        title="Hapus"
-                                    />
-                                </div>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @empty
-                        <flux:table.row>
-                            <flux:table.cell colspan="8" class="text-center py-10 text-zinc-400">
-                                Tidak ada data sesi pengisian yang cocok dengan filter.
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforelse
-                </flux:table.rows>
-            </flux:table>
+        {{-- PowerGrid Table --}}
+        <div>
+            <livewire:tables.charging-session-table
+                :charging-mode="$charging_mode"
+                :station-filter="$station_filter"
+                :started-from="$started_from"
+                :started-until="$started_until"
+                :key="'sessions-table-'.$charging_mode.'-'.$station_filter.'-'.$started_from.'-'.$started_until"
+            />
         </div>
-
-        @if ($sessions->hasPages())
-            <div class="p-4 border-t border-zinc-200 dark:border-zinc-800">
-                {{ $sessions->links() }}
-            </div>
-        @endif
     </flux:card>
 
     {{-- Create / Edit Modal --}}

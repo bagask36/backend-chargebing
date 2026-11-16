@@ -143,133 +143,17 @@
                 </flux:select>
             </div>
         </div>
-    </flux:card>
 
-    {{-- Stations Table --}}
-    <flux:card class="p-0 overflow-hidden">
-        <div class="overflow-x-auto">
-            <flux:table>
-                <flux:table.columns>
-                    <flux:table.column class="w-10">Fav</flux:table.column>
-                    <flux:table.column>Nama & Operator</flux:table.column>
-                    <flux:table.column>Lokasi & Koordinat</flux:table.column>
-                    <flux:table.column>Konektor & Kompatibilitas GB/T</flux:table.column>
-                    <flux:table.column>Operasional & Tarif</flux:table.column>
-                    <flux:table.column class="text-right">Aksi</flux:table.column>
-                </flux:table.columns>
-
-                <flux:table.rows>
-                    @forelse ($stations as $station)
-                        <flux:table.row :key="$station->id">
-                            {{-- Favorite toggle --}}
-                            <flux:table.cell>
-                                <button
-                                    type="button"
-                                    wire:click="toggleFavorite({{ $station->id }})"
-                                    class="text-lg hover:scale-110 transition-transform cursor-pointer"
-                                    title="{{ $station->is_favorite ? 'Hapus Favorit' : 'Jadikan Favorit' }}"
-                                >
-                                    @if ($station->is_favorite)
-                                        ⭐
-                                    @else
-                                        <span class="text-zinc-300 dark:text-zinc-600">☆</span>
-                                    @endif
-                                </button>
-                            </flux:table.cell>
-
-                            {{-- Name & Operator --}}
-                            <flux:table.cell>
-                                <div class="font-semibold text-zinc-900 dark:text-white">
-                                    {{ $station->name }}
-                                </div>
-                                <div class="text-xs text-zinc-500 font-medium">
-                                    {{ $station->operator ?? 'Operator Tidak Diketahui' }}
-                                </div>
-                            </flux:table.cell>
-
-                            {{-- Location --}}
-                            <flux:table.cell class="max-w-xs">
-                                <div class="text-xs text-zinc-600 dark:text-zinc-300 truncate">
-                                    {{ $station->address ?? '-' }}
-                                </div>
-                                <div class="text-[11px] font-mono text-zinc-400 mt-0.5">
-                                    {{ number_format((float) $station->latitude, 5) }}, {{ number_format((float) $station->longitude, 5) }}
-                                </div>
-                            </flux:table.cell>
-
-                            {{-- Connectors --}}
-                            <flux:table.cell>
-                                <div class="flex flex-wrap gap-1.5 max-w-sm">
-                                    @forelse ($station->connectors as $connector)
-                                        <div class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs border
-                                            @if ($connector->compat_status->value === 'native')
-                                                bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-800
-                                            @elseif ($connector->compat_status->value === 'adapter_ok')
-                                                bg-sky-50 dark:bg-sky-950/40 text-sky-700 dark:text-sky-300 border-sky-300 dark:border-sky-800
-                                            @elseif ($connector->compat_status->value === 'untested')
-                                                bg-amber-50 dark:bg-amber-950/40 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-800
-                                            @else
-                                                bg-rose-50 dark:bg-rose-950/40 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800
-                                            @endif
-                                        ">
-                                            <span class="font-bold">{{ $connector->current_type->value }}</span>
-                                            <span>{{ $connector->plug_type->value }} ({{ (int)$connector->power_kw }}kW)</span>
-                                            <span class="text-[10px] opacity-80">• {{ $connector->compat_status->label() }}</span>
-                                        </div>
-                                    @empty
-                                        <span class="text-xs text-zinc-400 italic">Belum ada konektor</span>
-                                    @endforelse
-                                </div>
-                            </flux:table.cell>
-
-                            {{-- Hours & Pricing --}}
-                            <flux:table.cell class="text-xs">
-                                <div class="text-zinc-700 dark:text-zinc-300">
-                                    {{ $station->opening_hours ?? '24 Jam' }}
-                                </div>
-                                <div class="text-zinc-500 truncate max-w-[180px]">
-                                    {{ $station->pricing_note ?? '-' }}
-                                </div>
-                            </flux:table.cell>
-
-                            {{-- Actions --}}
-                            <flux:table.cell class="text-right">
-                                <div class="inline-flex items-center gap-1">
-                                    <flux:button
-                                        wire:click="edit({{ $station->id }})"
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="pencil-square"
-                                        title="Edit"
-                                    />
-                                    <flux:button
-                                        wire:click="delete({{ $station->id }})"
-                                        wire:confirm="Yakin ingin menghapus stasiun ini?"
-                                        variant="ghost"
-                                        size="sm"
-                                        icon="trash"
-                                        class="text-rose-600 hover:text-rose-700 dark:text-rose-400"
-                                        title="Hapus"
-                                    />
-                                </div>
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @empty
-                        <flux:table.row>
-                            <flux:table.cell colspan="6" class="text-center py-10 text-zinc-400">
-                                Tidak ada data stasiun SPKLU yang cocok dengan pencarian / filter.
-                            </flux:table.cell>
-                        </flux:table.row>
-                    @endforelse
-                </flux:table.rows>
-            </flux:table>
+        {{-- PowerGrid Table --}}
+        <div>
+            <livewire:tables.station-table
+                :search="$search"
+                :current-type="$current_type"
+                :plug-type="$plug_type"
+                :compat-status="$compat_status"
+                :key="'stations-table-'.$search.'-'.$current_type.'-'.$plug_type.'-'.$compat_status"
+            />
         </div>
-
-        @if ($stations->hasPages())
-            <div class="p-4 border-t border-zinc-200 dark:border-zinc-800">
-                {{ $stations->links() }}
-            </div>
-        @endif
     </flux:card>
 
     {{-- Create / Edit Modal with Repeater Connectors and Location Picker Map --}}

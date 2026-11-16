@@ -1,0 +1,123 @@
+@props([
+    'rowIndex' => 0,
+    'childIndex' => null,
+    'parentId' => null,
+    '__partial' => null,
+])
+
+@use('PowerComponents\LivewirePowerGrid\Support\ColumnViewModel')
+
+@php
+    $__partial = $__partial ?? $this;
+@endphp
+
+@includeWhen(isset($__partial->setUp['responsive']), theme_view('toggle-detail-responsive'), [
+    'view' => data_get($__partial->setUp, 'detail.viewIcon') ?? null,
+])
+
+@php
+    $defaultCollapseIcon = theme_view('toggle-detail');
+@endphp
+
+@includeWhen(data_get($__partial->setUp, 'detail.showCollapseIcon'),
+    data_get(collect($row->__turbine_rules)->last(), 'toggleDetailView') ?? $defaultCollapseIcon,
+    [
+        'setUp' => $__partial->setUp,
+        'view' => data_get($__partial->setUp, 'detail.viewIcon') ?? null,
+    ]
+)
+
+@includeWhen($__partial->radio && $__partial->radioAttribute, theme_view('table.radio-row'), [
+    'attribute' => $row->{$__partial->radioAttribute} ?? null,
+])
+
+@includeWhen($__partial->checkbox && $__partial->checkboxAttribute, theme_view('table.checkbox-row'), [
+    'attribute' => $row->{$__partial->checkboxAttribute} ?? null,
+])
+
+@foreach ($__partial->visibleColumns as $column)
+    @php
+        $field = data_get($column, 'field');
+        $content = $row->{$field} ?? '';
+        $renderedTemplate = is_array($content) ? $__partial->renderRowTemplate($content) : null;
+
+        if ($renderedTemplate !== null || is_array($content)) {
+            $content = '';
+        }
+
+        $contentClassField = filled(data_get($column, 'contentClassField'))
+            ? ($row->{data_get($column, 'contentClassField')} ?? '')
+            : '';
+
+        if ($content instanceof \UnitEnum) {
+            $content = $content instanceof \BackedEnum
+                ? $content->value
+                : $content->name;
+        }
+
+        $content = preg_replace('#<script(.*?)>(.*?)</script>#is', '', $content ?? '');
+        $content = is_scalar($content) || $content instanceof \Stringable ? e((string) $content) : '';
+        $field = data_get($column, 'dataField', data_get($column, 'field'));
+
+        $contentClass = data_get($column, 'contentClasses');
+
+        if (is_array(data_get($column, 'contentClasses'))) {
+            $contentClass = array_key_exists($content, data_get($column, 'contentClasses'))
+                ? data_get($column, 'contentClasses')[$content]
+                : '';
+        }
+
+        $alignClasses = ColumnViewModel::alignmentClasses(data_get($column, 'align'));
+    @endphp
+    <td
+        @class([
+            data_get($column, 'isAction') ? theme('table.layout.td_actions') : theme('table.layout.td'),
+            data_get($column, 'bodyClass'),
+            $alignClasses,
+        ])
+        @style([
+            'display:none' => data_get($column, 'hidden'),
+            data_get($column, 'bodyStyle'),
+        ])
+        wire:key="row-{{ $rowId }}-{{ $field }}-{{ $childIndex ?? 0 }}"
+        data-column="{{ data_get($column, 'isAction') ? 'actions' : $field }}"
+    >
+        @if (count(data_get($column, 'customContent')) > 0)
+            @include(data_get($column, 'customContent.view'), data_get($column, 'customContent.params'))
+        @else
+            @if (data_get($column, 'isAction'))
+                <div class="pg-actions">
+                    @if (method_exists($__partial, 'actionsFromView') && ($actionsFromView = $__partial->actionsFromView($row)))
+                        <div wire:key="actions-view-{{ data_get($row, $__partial->realPrimaryKey) }}">
+                            {!! $actionsFromView !!}
+                        </div>
+                    @endif
+
+                    <div wire:replace.self>
+                        @if (data_get($column, 'isAction'))
+                            <div class="{{ theme('table.body.td.actions_wrapper') }} {{ $alignClasses }}">
+                                {!! $__partial->renderActions($row) !!}
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endif
+
+            @php
+                $pluginContent = $__partial->renderColumnContent($column, $row);
+            @endphp
+
+            @if ($pluginContent !== null)
+                {!! $pluginContent !!}
+            @else
+                <span @class([$contentClassField, $contentClass])>
+                    @if ($renderedTemplate !== null)
+                        {!! $renderedTemplate !!}
+                    @else
+                        <div>{!! data_get($column, 'index') ? $rowIndex : $content !!}</div>
+                    @endif
+                </span>
+            @endif
+        @endif
+    </td>
+@endforeach

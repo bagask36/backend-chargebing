@@ -1,0 +1,61 @@
+@props([
+    'class' => '',
+    'column' => null,
+    'inline' => null,
+    'filter' => null,
+    'options' => [],
+])
+@php
+    $title = data_get($column, 'title');
+    $filterClasses = \Illuminate\Support\Arr::toCssClasses([
+       theme('filter.select.select'),
+        $class,
+    ]);
+    $params = array_merge((array) data_get($filter, 'attributes', []), $filter);
+@endphp
+
+@if ($params['component'])
+    @unset($params['attributes'])
+
+    <x-dynamic-component
+        :component="$params['component']"
+        :attributes="new \Illuminate\View\ComponentAttributeBag($params)"
+    />
+@else
+    <div
+        @class([theme('filter.select.base'), 'space-y-1' => !$inline])
+    >
+        @if (!$inline)
+            <label class="{{ theme('filter.label', 'block text-sm font-semibold text-zinc-700 dark:text-zinc-300') }}">
+                {{ $title }}
+            </label>
+        @endif
+        <div class="relative">
+            <select
+                class="{{ $filterClasses }}"
+                style="{{ data_get($column, 'headerStyle') }}"
+                {{ data_get($filter, 'wire.value') }}
+            >
+                @if(!data_get($params, 'params.disableOptionAll', false))
+                    <option value="">{{ trans('livewire-powergrid::datatable.select.all') }}</option>
+                @endif
+
+                @php
+                    $computedDatasource = data_get($filter, 'computedDatasource');
+                    $dataSource = filled($computedDatasource)
+                        ? ($__partial ?? $this)->{$computedDatasource}
+                        : data_get($filter, 'dataSource');
+                @endphp
+
+                @foreach ($dataSource as $key => $item)
+                    <option
+                        wire:key="select-{{ $tableName }}-{{ $key }}"
+                        value="{{ $item[data_get($filter, 'optionValue')] }}"
+                    >
+                        {{ $item[data_get($filter, 'optionLabel')] }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+@endif

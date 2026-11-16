@@ -1,4 +1,5 @@
 import L from 'leaflet';
+import '../../vendor/power-components/livewire-powergrid/resources/js/powergrid-flux.js';
 
 window.L = L;
 

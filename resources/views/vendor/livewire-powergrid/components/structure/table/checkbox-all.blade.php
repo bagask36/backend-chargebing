@@ -1,0 +1,35 @@
+@props([
+    '__partial' => null,
+])
+
+@php
+    $__partial = $__partial ?? $this;
+    $setUp = $__partial->setUp;
+    $tableName = $__partial->tableName;
+@endphp
+
+@php
+    $responsiveCheckboxColumnName =
+        \PowerComponents\Turbine\Components\SetUp\Responsive::CHECKBOX_COLUMN_NAME;
+
+    $isCheckboxFixedOnResponsive =
+        isset($setUp['responsive']) &&
+        in_array($responsiveCheckboxColumnName, data_get($setUp, 'responsive.fixedColumns'));
+@endphp
+<th
+    @if ($isCheckboxFixedOnResponsive) fixed @endif
+    scope="col"
+    @class([theme('table.layout.th'), theme('checkbox.th')])
+    wire:key="checkbox-all-{{ $tableName }}"
+>
+    <div class="{{ theme('checkbox.base') }}">
+        <label class="{{ theme('checkbox.label') }}">
+            <input
+                x-data="pgSelectAll"
+                class="{{ theme('checkbox.input') }}"
+                type="checkbox"
+                x-on:change="$wire.selectCheckboxAll($event.target.checked)"
+            >
+        </label>
+    </div>
+</th>

@@ -1,0 +1,66 @@
+@props([
+    'tableName' => null,
+    'tabs' => [],
+    'activeTab' => null,
+    'align' => 'left',
+    'classes' => [],
+])
+
+<div
+    wire:partial="pg-tabs-{{ $tableName }}"
+    wire:key="pg-tabs-{{ $tableName }}"
+    @class([
+        'pg-tabs flex w-full',
+        'justify-start' => $align === 'left',
+        'justify-center' => $align === 'center',
+        'justify-end' => $align === 'right',
+        $classes['container'] ?? '',
+    ])
+>
+    @if (filled($tabs))
+        <div
+            role="tablist"
+            @class([
+                theme('tabs.list', 'inline-flex flex-wrap items-center gap-1 rounded-xl border border-gray-200 bg-white p-1 shadow-sm dark:border-gray-700 dark:bg-gray-800'),
+                $classes['list'] ?? '',
+            ])
+        >
+            @foreach ($tabs as $tab)
+                <button
+                    type="button"
+                    role="tab"
+                    wire:click="selectTab({!! js_literal($tab['key']) !!})"
+                    wire:key="pg-tab-{{ $tableName }}-{{ $tab['key'] }}"
+                    @class([
+                        theme('tabs.tab', 'inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition'),
+                        theme('tabs.tab_active', 'bg-gray-100 text-gray-900 shadow-sm dark:bg-gray-700 dark:text-white') => $tab['active'],
+                        theme('tabs.tab_inactive', 'text-gray-500 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-100') => ! $tab['active'],
+                        $classes['tab'] ?? '',
+                        ($classes['tab_active'] ?? '') => $tab['active'],
+                        ($classes['tab_inactive'] ?? '') => ! $tab['active'],
+                        $tab['classes'] ?? '',
+                    ])
+                    aria-selected="{{ $tab['active'] ? 'true' : 'false' }}"
+                    @if ($tab['active']) aria-current="page" @endif
+                >
+                    @if (filled($tab['icon']))
+                        {!! \PowerComponents\LivewirePowerGrid\Support\IconRenderer::render($tab['icon'], ['class' => 'w-4 h-4 shrink-0']) !!}
+                    @endif
+
+                    <span>{{ $tab['label'] }}</span>
+
+                    @if (! is_null($tab['badge']))
+                        <span @class([
+                            theme('tabs.badge', 'inline-flex items-center justify-center rounded-full px-2 py-0.5 text-xs font-semibold'),
+                            theme('tabs.badge_active', 'bg-accent-100 text-accent-700 dark:bg-accent-500/20 dark:text-accent-300') => $tab['active'],
+                            theme('tabs.badge_inactive', 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300') => ! $tab['active'],
+                            $classes['badge'] ?? '',
+                            ($classes['badge_active'] ?? '') => $tab['active'],
+                            ($classes['badge_inactive'] ?? '') => ! $tab['active'],
+                        ])>{{ $tab['badge'] }}</span>
+                    @endif
+                </button>
+            @endforeach
+        </div>
+    @endif
+</div>

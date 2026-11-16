@@ -1,0 +1,551 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ChargeBing EV Tracker API",
+    "version": "1.0.0",
+    "description": "REST API untuk aplikasi mobile iOS (SwiftUI) personal tracker charging station mobil listrik GB/T (AC & DC). Mendukung pemetaan SPKLU, kompatibilitas colokan (native, adaptor, untested), pencatatan sesi pengisian baterai, dan katalog master mobil listrik di Indonesia."
+  },
+  "servers": [
+    {
+      "url": "http://127.0.0.1:8080/api/v1",
+      "description": "Local Development (127.0.0.1)"
+    },
+    {
+      "url": "http://localhost:8080/api/v1",
+      "description": "Local Development (localhost)"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Sanctum Token",
+        "description": "Masukkan token Sanctum hasil dari endpoint /auth/login (contoh: 1|AbCdEf...)"
+      }
+    },
+    "schemas": {
+      "User": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "name": { "type": "string", "example": "Bagas" },
+          "email": { "type": "string", "format": "email", "example": "admin@chargebing.local" },
+          "ev_model_id": { "type": "integer", "nullable": true, "example": 4 },
+          "ev_model": { "$ref": "#/components/schemas/EvModel" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "EvModel": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 4 },
+          "brand": { "type": "string", "example": "Wuling" },
+          "model_name": { "type": "string", "example": "BinguoEV" },
+          "variant": { "type": "string", "nullable": true, "example": "410 km" },
+          "full_name": { "type": "string", "example": "Wuling BinguoEV (410 km)" },
+          "battery_capacity_kwh": { "type": "number", "format": "float", "example": 37.9 },
+          "range_km": { "type": "integer", "example": 410 },
+          "ac_plug_type": { "type": "string", "enum": ["GBT", "TYPE2", "OTHER"], "example": "GBT" },
+          "dc_plug_type": { "type": "string", "nullable": true, "enum": ["GBT", "CCS2", "CHADEMO", "OTHER"], "example": "GBT" },
+          "has_dc": { "type": "boolean", "example": true },
+          "max_ac_kw": { "type": "number", "nullable": true, "example": 3.3 },
+          "max_dc_kw": { "type": "number", "nullable": true, "example": 50.0 },
+          "is_active": { "type": "boolean", "example": true },
+          "notes": { "type": "string", "nullable": true, "example": "Dual port GB/T AC & DC Fast Charging." }
+        }
+      },
+      "Connector": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "station_id": { "type": "integer", "example": 1 },
+          "current_type": { "type": "string", "enum": ["AC", "DC"], "example": "DC" },
+          "plug_type": { "type": "string", "enum": ["GBT", "TYPE2", "CCS2", "CHADEMO", "OTHER"], "example": "GBT" },
+          "power_kw": { "type": "number", "example": 60.0 },
+          "unit_count": { "type": "integer", "example": 2 },
+          "compat_status": { "type": "string", "enum": ["native", "adapter_ok", "adapter_failed", "incompatible", "untested"], "example": "native" },
+          "adapter_note": { "type": "string", "nullable": true, "example": null },
+          "last_tested_at": { "type": "string", "format": "date", "nullable": true, "example": "2026-11-13" }
+        }
+      },
+      "Station": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "name": { "type": "string", "example": "SPKLU PLN UID Jakarta Raya (Gambir)" },
+          "operator": { "type": "string", "nullable": true, "example": "PLN SPKLU" },
+          "address": { "type": "string", "nullable": true, "example": "Jl. M.I. Ridwan Rais No.1, Gambir, Jakarta Pusat" },
+          "latitude": { "type": "number", "format": "float", "example": -6.178921 },
+          "longitude": { "type": "number", "format": "float", "example": 106.832412 },
+          "pricing_note": { "type": "string", "nullable": true, "example": "Rp 2.466 / kWh + PJU 3%" },
+          "opening_hours": { "type": "string", "nullable": true, "example": "24 Jam" },
+          "notes": { "type": "string", "nullable": true, "example": "Posisi charger dekat lobi gedung utama." },
+          "is_favorite": { "type": "boolean", "example": true },
+          "distance_km": { "type": "number", "nullable": true, "example": 1.25 },
+          "connectors": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Connector" }
+          }
+        }
+      },
+      "ChargingSession": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "example": 1 },
+          "station_id": { "type": "integer", "example": 1 },
+          "connector_id": { "type": "integer", "nullable": true, "example": 1 },
+          "ev_model_id": { "type": "integer", "nullable": true, "example": 4 },
+          "charging_mode": { "type": "string", "enum": ["AC", "DC"], "example": "DC" },
+          "started_at": { "type": "string", "format": "date-time", "example": "2026-11-16T10:00:00.000000Z" },
+          "ended_at": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-11-16T10:45:00.000000Z" },
+          "kwh": { "type": "number", "example": 32.5 },
+          "cost": { "type": "number", "nullable": true, "example": 83000 },
+          "soc_start": { "type": "integer", "nullable": true, "example": 20 },
+          "soc_end": { "type": "integer", "nullable": true, "example": 85 },
+          "notes": { "type": "string", "nullable": true, "example": "Pengisian cepat DC GB/T dari 20% ke 85%." },
+          "station": { "$ref": "#/components/schemas/Station" },
+          "connector": { "$ref": "#/components/schemas/Connector" },
+          "ev_model": { "$ref": "#/components/schemas/EvModel" }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/login": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Login Admin & Dapatkan Bearer Token",
+        "description": "Autentikasi akun pemilik untuk mendapatkan token Sanctum. Dibatasi rate limit 5 request / menit.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "password"],
+                "properties": {
+                  "email": { "type": "string", "example": "admin@chargebing.local" },
+                  "password": { "type": "string", "example": "password123" },
+                  "device_name": { "type": "string", "example": "iPhone 16 Pro (SwiftUI)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Berhasil login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Authentication successful." },
+                    "token": { "type": "string", "example": "1|ABCDef123456..." },
+                    "token_type": { "type": "string", "example": "Bearer" },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "422": { "description": "Email atau password salah" },
+          "429": { "description": "Terlalu banyak percobaan login (Rate limit 5/menit)" }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "tags": ["Authentication"],
+        "summary": "Logout & Cabut Token Aktif",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Berhasil logout",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Successfully logged out." }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "tags": ["Authentication"],
+        "summary": "Profil Pengguna & Mobil Listrik Aktif",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Profil pengguna yang sedang login",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          },
+          "401": { "description": "Unauthenticated" }
+        }
+      },
+      "put": {
+        "tags": ["Authentication"],
+        "summary": "Update Profil & Pilih Mobil Listrik Aktif",
+        "description": "Digunakan oleh mobile app saat pengguna memilih model mobil listrik yang dipakai dari daftar master.",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string", "example": "Bagas" },
+                  "ev_model_id": { "type": "integer", "example": 4, "description": "ID dari master ev-models" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profil berhasil diperbarui",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": { "type": "string", "example": "Profile updated successfully." },
+                    "user": { "$ref": "#/components/schemas/User" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/ev-models": {
+      "get": {
+        "tags": ["Master Mobil Listrik"],
+        "summary": "Katalog Master Mobil Listrik di Indonesia",
+        "description": "Menampilkan seluruh tipe mobil listrik dengan spesifikasi baterai, jarak tempuh, colokan AC & DC. Gunakan parameter `all=1` untuk SwiftUI Picker tanpa pagination.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "all", "in": "query", "schema": { "type": "integer", "enum": [0, 1] }, "description": "Set 1 untuk mengambil semua data unpaginated (cocok untuk dropdown/picker)" },
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Pencarian nama merk, model, atau varian (contoh: Binguo, Ioniq)" },
+          { "name": "brand", "in": "query", "schema": { "type": "string" }, "description": "Filter merk/pabrikan (contoh: Wuling, Hyundai, BYD)" },
+          { "name": "has_dc", "in": "query", "schema": { "type": "integer", "enum": [0, 1] }, "description": "Filter mobil dengan DC Fast Charging (1: ya, 0: hanya AC)" },
+          { "name": "plug_type", "in": "query", "schema": { "type": "string", "enum": ["GBT", "TYPE2", "CCS2", "CHADEMO"] }, "description": "Filter tipe colokan" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar mobil listrik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/EvModel" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Master Mobil Listrik"],
+        "summary": "Tambah Mobil Listrik Baru",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["brand", "model_name", "battery_capacity_kwh", "range_km", "ac_plug_type"],
+                "properties": {
+                  "brand": { "type": "string", "example": "Wuling" },
+                  "model_name": { "type": "string", "example": "Cloud EV" },
+                  "variant": { "type": "string", "example": "460 km" },
+                  "battery_capacity_kwh": { "type": "number", "example": 50.6 },
+                  "range_km": { "type": "integer", "example": 460 },
+                  "ac_plug_type": { "type": "string", "enum": ["GBT", "TYPE2", "OTHER"], "example": "GBT" },
+                  "dc_plug_type": { "type": "string", "nullable": true, "enum": ["GBT", "CCS2", "CHADEMO", "OTHER"], "example": "GBT" },
+                  "max_ac_kw": { "type": "number", "example": 6.6 },
+                  "max_dc_kw": { "type": "number", "example": 60.0 },
+                  "is_active": { "type": "boolean", "example": true },
+                  "notes": { "type": "string", "example": "Dukungan GB/T native AC & DC." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": { "description": "Mobil listrik berhasil dibuat" }
+        }
+      }
+    },
+    "/ev-models/{id}": {
+      "get": {
+        "tags": ["Master Mobil Listrik"],
+        "summary": "Detail Spesifikasi Satu Mobil Listrik",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": {
+          "200": {
+            "description": "Detail mobil listrik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": { "data": { "$ref": "#/components/schemas/EvModel" } }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": ["Master Mobil Listrik"],
+        "summary": "Update Data Mobil Listrik",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Berhasil diupdate" } }
+      },
+      "delete": {
+        "tags": ["Master Mobil Listrik"],
+        "summary": "Hapus Mobil Listrik (Soft Delete)",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Berhasil dihapus" } }
+      }
+    },
+    "/stations": {
+      "get": {
+        "tags": ["Stations (SPKLU)"],
+        "summary": "Daftar Stasiun SPKLU",
+        "description": "Menampilkan daftar stasiun pengisian dengan filter komprehensif, pencarian teks, dan kalkulasi jarak Haversine.",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "current_type", "in": "query", "schema": { "type": "string", "enum": ["AC", "DC"] }, "description": "Filter mode pengisian yang tersedia" },
+          { "name": "plug_type", "in": "query", "schema": { "type": "string", "enum": ["GBT", "TYPE2", "CCS2", "CHADEMO", "OTHER"] }, "description": "Filter tipe colokan" },
+          { "name": "compat_status", "in": "query", "schema": { "type": "string", "enum": ["native", "adapter_ok", "untested", "incompatible"] }, "description": "Filter status kompatibilitas" },
+          { "name": "usable_only", "in": "query", "schema": { "type": "integer", "enum": [0, 1] }, "description": "1 = Hanya stasiun yang kompatibel (native GB/T atau adapter OK)" },
+          { "name": "q", "in": "query", "schema": { "type": "string" }, "description": "Pencarian nama stasiun, operator, atau alamat" },
+          { "name": "lat", "in": "query", "schema": { "type": "number" }, "description": "Latitude pengguna untuk pengurutan jarak terdekat" },
+          { "name": "lng", "in": "query", "schema": { "type": "number" }, "description": "Longitude pengguna untuk pengurutan jarak terdekat" },
+          { "name": "radius_km", "in": "query", "schema": { "type": "number" }, "description": "Filter radius jarak maksimum dalam km (membutuhkan lat & lng)" }
+        ],
+        "responses": {
+          "200": {
+            "description": "Daftar stasiun SPKLU",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": { "type": "array", "items": { "$ref": "#/components/schemas/Station" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Stations (SPKLU)"],
+        "summary": "Tambah Stasiun SPKLU Baru",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "latitude", "longitude"],
+                "properties": {
+                  "name": { "type": "string", "example": "SPKLU Gambir" },
+                  "operator": { "type": "string", "example": "PLN SPKLU" },
+                  "address": { "type": "string", "example": "Jl. M.I. Ridwan Rais No.1" },
+                  "latitude": { "type": "number", "example": -6.178921 },
+                  "longitude": { "type": "number", "example": 106.832412 },
+                  "pricing_note": { "type": "string", "example": "Rp 2.466 / kWh" },
+                  "opening_hours": { "type": "string", "example": "24 Jam" },
+                  "is_favorite": { "type": "boolean", "example": true }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Stasiun berhasil dibuat" } }
+      }
+    },
+    "/stations/{id}": {
+      "get": {
+        "tags": ["Stations (SPKLU)"],
+        "summary": "Detail Stasiun SPKLU",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Detail stasiun" } }
+      },
+      "put": {
+        "tags": ["Stations (SPKLU)"],
+        "summary": "Update Stasiun SPKLU",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Berhasil diupdate" } }
+      },
+      "delete": {
+        "tags": ["Stations (SPKLU)"],
+        "summary": "Hapus Stasiun SPKLU",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Berhasil dihapus" } }
+      }
+    },
+    "/stations/{station_id}/connectors": {
+      "get": {
+        "tags": ["Connectors (Colokan)"],
+        "summary": "Daftar Colokan pada Satu Stasiun",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "station_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Daftar colokan" } }
+      },
+      "post": {
+        "tags": ["Connectors (Colokan)"],
+        "summary": "Tambah Colokan ke Stasiun",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "station_id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["current_type", "plug_type", "power_kw"],
+                "properties": {
+                  "current_type": { "type": "string", "enum": ["AC", "DC"], "example": "DC" },
+                  "plug_type": { "type": "string", "enum": ["GBT", "TYPE2", "CCS2", "CHADEMO", "OTHER"], "example": "GBT" },
+                  "power_kw": { "type": "number", "example": 60.0 },
+                  "unit_count": { "type": "integer", "example": 2 },
+                  "compat_status": { "type": "string", "enum": ["native", "adapter_ok", "adapter_failed", "incompatible", "untested"], "example": "native" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Colokan berhasil ditambahkan" } }
+      }
+    },
+    "/charging-sessions": {
+      "get": {
+        "tags": ["Charging Sessions"],
+        "summary": "Daftar Riwayat Sesi Pengisian Baterai",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          { "name": "charging_mode", "in": "query", "schema": { "type": "string", "enum": ["AC", "DC"] } },
+          { "name": "station_id", "in": "query", "schema": { "type": "integer" } },
+          { "name": "started_from", "in": "query", "schema": { "type": "string", "format": "date" } },
+          { "name": "started_until", "in": "query", "schema": { "type": "string", "format": "date" } }
+        ],
+        "responses": { "200": { "description": "Daftar sesi pengisian" } }
+      },
+      "post": {
+        "tags": ["Charging Sessions"],
+        "summary": "Catat Sesi Pengisian Baterai Baru",
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["station_id", "charging_mode", "started_at", "kwh"],
+                "properties": {
+                  "station_id": { "type": "integer", "example": 1 },
+                  "connector_id": { "type": "integer", "nullable": true, "example": 1 },
+                  "ev_model_id": { "type": "integer", "nullable": true, "example": 4 },
+                  "charging_mode": { "type": "string", "enum": ["AC", "DC"], "example": "DC" },
+                  "started_at": { "type": "string", "format": "date-time", "example": "2026-11-16T10:00:00" },
+                  "ended_at": { "type": "string", "format": "date-time", "nullable": true, "example": "2026-11-16T10:45:00" },
+                  "kwh": { "type": "number", "example": 32.5 },
+                  "cost": { "type": "number", "nullable": true, "example": 83000 },
+                  "soc_start": { "type": "integer", "nullable": true, "example": 20 },
+                  "soc_end": { "type": "integer", "nullable": true, "example": 85 },
+                  "notes": { "type": "string", "nullable": true, "example": "Pengisian cepat DC GB/T." }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Sesi pengisian berhasil dicatat" } }
+      }
+    },
+    "/charging-sessions/{id}": {
+      "get": {
+        "tags": ["Charging Sessions"],
+        "summary": "Detail Sesi Pengisian",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Detail sesi" } }
+      },
+      "put": {
+        "tags": ["Charging Sessions"],
+        "summary": "Update Sesi Pengisian",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Berhasil diupdate" } }
+      },
+      "delete": {
+        "tags": ["Charging Sessions"],
+        "summary": "Hapus Sesi Pengisian",
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [{ "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } }],
+        "responses": { "200": { "description": "Berhasil dihapus" } }
+      }
+    },
+    "/stats/summary": {
+      "get": {
+        "tags": ["Statistics"],
+        "summary": "Ringkasan Statistik Konsumsi Energi & Biaya (Dipisah AC vs DC)",
+        "description": "Menampilkan total kWh, total biaya, dan total sesi secara all-time, bulan berjalan, serta breakdown historis per bulan dengan pemisahan mode AC dan DC.",
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "Ringkasan metrik statistik",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "all_time": { "type": "object" },
+                    "current_month": { "type": "object" },
+                    "monthly": { "type": "array", "items": { "type": "object" } }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,15 @@
+<td
+    x-cloak
+    x-show="hasHiddenElements"
+    class="w-0 {{ theme('table.layout.td') }}"
+>
+    <button
+        class="flex items-center"
+        x-on:click="toggleExpanded({!! js_literal($rowId) !!})"
+    >
+        <x-livewire-powergrid::icons.arrow
+            class="{{ theme('table.body.tr.responsive_toggle_icon') }} w-5 h-5 transition-all duration-300"
+            x-bind:class="rotateClass({!! js_literal($rowId) !!})"
+        />
+    </button>
+</td>
