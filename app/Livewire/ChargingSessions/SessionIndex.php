@@ -113,6 +113,23 @@ class SessionIndex extends Component
         $this->syncConnectorMode();
     }
 
+    public function applyEstimation(): void
+    {
+        if (! $this->form->ev_model_id || $this->form->soc_start === null || $this->form->soc_end === null) {
+            return;
+        }
+
+        if ($this->form->soc_end > $this->form->soc_start) {
+            $car = EvModel::find($this->form->ev_model_id);
+            if ($car) {
+                $delta = $this->form->soc_end - $this->form->soc_start;
+                $kwh = round((float) $car->battery_capacity_kwh * ($delta / 100), 2);
+                $this->form->kwh = $kwh;
+                $this->form->cost = (float) round($kwh * 2466);
+            }
+        }
+    }
+
     private function syncConnectorMode(): void
     {
         if ($this->form->connector_id) {

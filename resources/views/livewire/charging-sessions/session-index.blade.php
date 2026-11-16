@@ -72,7 +72,7 @@
                 <div class="sm:col-span-2">
                     <flux:field>
                         <flux:label>Mobil Listrik (EV)</flux:label>
-                        <flux:select wire:model="form.ev_model_id">
+                        <flux:select wire:model.live="form.ev_model_id">
                             <flux:select.option value="">Pilih Mobil (Opsional / Default)</flux:select.option>
                             @foreach ($allEvModels as $car)
                                 <flux:select.option value="{{ $car->id }}">
@@ -166,7 +166,7 @@
                 <div>
                     <flux:field>
                         <flux:label>State of Charge Mulai (%)</flux:label>
-                        <flux:input wire:model="form.soc_start" type="number" min="0" max="100" placeholder="cth: 20" />
+                        <flux:input wire:model.live.debounce.300ms="form.soc_start" type="number" min="0" max="100" placeholder="cth: 20" />
                         <flux:error name="form.soc_start" />
                     </flux:field>
                 </div>
@@ -175,10 +175,37 @@
                 <div>
                     <flux:field>
                         <flux:label>State of Charge Selesai (%)</flux:label>
-                        <flux:input wire:model="form.soc_end" type="number" min="0" max="100" placeholder="cth: 85" />
+                        <flux:input wire:model.live.debounce.300ms="form.soc_end" type="number" min="0" max="100" placeholder="cth: 85" />
                         <flux:error name="form.soc_end" />
                     </flux:field>
                 </div>
+
+                {{-- Smart Charging Estimation Box --}}
+                @php
+                    $calcCar = $form->ev_model_id ? $allEvModels->firstWhere('id', $form->ev_model_id) : null;
+                    $hasValidCalc = $calcCar && is_numeric($form->soc_start) && is_numeric($form->soc_end) && ((int)$form->soc_end > (int)$form->soc_start);
+                @endphp
+                @if ($hasValidCalc)
+                    @php
+                        $deltaPercent = (int)$form->soc_end - (int)$form->soc_start;
+                        $calcKwh = round((float)$calcCar->battery_capacity_kwh * ($deltaPercent / 100), 2);
+                        $calcCost = round($calcKwh * 2466);
+                        $addedRange = round((float)$calcCar->range_km * ($deltaPercent / 100));
+                    @endphp
+                    <div class="sm:col-span-2 p-3.5 rounded-xl bg-emerald-50/80 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
+                        <div class="space-y-0.5">
+                            <div class="font-bold text-emerald-900 dark:text-emerald-200 flex items-center gap-1.5">
+                                <span>⚡ Estimasi Baterai {{ $calcCar->brand }} {{ $calcCar->model_name }} ({{ (float)$calcCar->battery_capacity_kwh }} kWh):</span>
+                            </div>
+                            <div class="text-emerald-700 dark:text-emerald-300">
+                                Kenaikan <strong>+{{ $deltaPercent }}%</strong> membutuhkan <strong>~{{ $calcKwh }} kWh</strong> (+{{ $addedRange }} km) • Estimasi biaya: <strong>Rp {{ number_format($calcCost, 0, ',', '.') }}</strong>
+                            </div>
+                        </div>
+                        <flux:button type="button" wire:click="applyEstimation" size="xs" variant="filled" class="bg-emerald-600 hover:bg-emerald-500 text-white shrink-0">
+                            Terapkan ke Kolom kWh & Biaya
+                        </flux:button>
+                    </div>
+                @endif
 
                 {{-- Notes --}}
                 <div class="sm:col-span-2">
