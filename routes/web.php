@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Livewire\Auth\Login;
+use App\Livewire\ChargingApps\ChargingAppIndex;
 use App\Livewire\ChargingSessions\SessionIndex;
 use App\Livewire\Dashboard;
 use App\Livewire\EvModels\EvModelIndex;
@@ -36,6 +37,7 @@ Route::middleware('auth')->group(function (): void {
     Route::get('/stations', StationIndex::class)->name('stations.index');
     Route::get('/sessions', SessionIndex::class)->name('sessions.index');
     Route::get('/ev-models', EvModelIndex::class)->name('ev-models.index');
+    Route::get('/charging-apps', ChargingAppIndex::class)->name('charging-apps.index');
 
     Route::post('/logout', function (Request $request) {
         Auth::logout();

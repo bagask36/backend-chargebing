@@ -40,6 +40,9 @@
             <flux:navlist.item icon="truck" href="/ev-models" :current="request()->is('ev-models*')" wire:navigate>
                 Master Mobil Listrik
             </flux:navlist.item>
+            <flux:navlist.item icon="device-phone-mobile" href="/charging-apps" :current="request()->is('charging-apps*')" wire:navigate>
+                Aplikasi Charging
+            </flux:navlist.item>
         </flux:navlist>
 
         <flux:spacer />
