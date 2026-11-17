@@ -5,6 +5,7 @@ declare(strict_types=1);
 use App\Enums\CurrentType;
 use App\Models\ChargingSession;
 use App\Models\Connector;
+use App\Models\EvModel;
 use App\Models\Station;
 use App\Models\User;
 use Laravel\Sanctum\Sanctum;
@@ -130,6 +131,41 @@ test('can update a charging session', function (): void {
     $this->assertDatabaseHas('charging_sessions', [
         'id' => $session->id,
         'kwh' => 25.50,
+    ]);
+});
+
+test('can update a charging session with ev_model_id and connector', function (): void {
+    $station = Station::factory()->create();
+    $evModel = EvModel::factory()->create();
+    $connector = Connector::factory()->gbtNative(CurrentType::DC)->create(['station_id' => $station->id]);
+    $session = ChargingSession::factory()->create([
+        'station_id' => $station->id,
+        'kwh' => 20.00,
+    ]);
+
+    $response = $this->putJson("/api/v1/charging-sessions/{$session->id}", [
+        'connector_id' => $connector->id,
+        'ev_model_id' => $evModel->id,
+        'kwh' => 30.00,
+        'cost' => 75000.00,
+    ]);
+
+    $response->assertOk()
+        ->assertJson([
+            'message' => 'Charging session updated successfully.',
+            'data' => [
+                'connector_id' => $connector->id,
+                'ev_model_id' => $evModel->id,
+                'kwh' => 30.00,
+                'cost' => 75000.00,
+            ],
+        ]);
+
+    $this->assertDatabaseHas('charging_sessions', [
+        'id' => $session->id,
+        'ev_model_id' => $evModel->id,
+        'connector_id' => $connector->id,
+        'kwh' => 30.00,
     ]);
 });
 

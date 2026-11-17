@@ -11,6 +11,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpFoundation\Response;
 
@@ -78,7 +79,7 @@ class AuthController extends Controller
                 'string',
                 'email',
                 'max:255',
-                \Illuminate\Validation\Rule::unique('users')->ignore($user->id),
+                Rule::unique('users')->ignore($user->id),
             ],
             'password' => ['nullable', 'string', 'min:8'],
             'ev_model_id' => ['sometimes', 'nullable', 'exists:ev_models,id'],

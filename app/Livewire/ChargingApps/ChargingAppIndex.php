@@ -124,4 +124,3 @@ class ChargingAppIndex extends Component
         ]);
     }
 }
-

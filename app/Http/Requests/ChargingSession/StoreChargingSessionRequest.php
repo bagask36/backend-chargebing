@@ -23,6 +23,7 @@ class StoreChargingSessionRequest extends FormRequest
         return [
             'station_id' => ['required', 'integer', 'exists:stations,id'],
             'connector_id' => ['nullable', 'integer', 'exists:connectors,id'],
+            'ev_model_id' => ['nullable', 'integer', 'exists:ev_models,id'],
             'charging_mode' => ['required', new Enum(CurrentType::class)],
             'started_at' => ['required', 'date'],
             'ended_at' => ['nullable', 'date', 'after_or_equal:started_at'],

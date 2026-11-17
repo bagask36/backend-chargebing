@@ -93,6 +93,7 @@ class StationIndex extends Component
             );
         } else {
             $this->form->store();
+            $this->form->resetForm();
             Flux::toast(
                 text: 'Stasiun baru berhasil ditambahkan!',
                 variant: 'success'

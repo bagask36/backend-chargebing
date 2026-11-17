@@ -22,7 +22,7 @@ class ChargingSessionController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = ChargingSession::query()->with(['station', 'connector']);
+        $query = ChargingSession::query()->with(['station', 'connector', 'evModel']);
 
         if ($request->filled('charging_mode')) {
             $query->where('charging_mode', strtoupper((string) $request->query('charging_mode')));
@@ -60,7 +60,7 @@ class ChargingSessionController extends Controller
     public function store(StoreChargingSessionRequest $request): JsonResponse
     {
         $session = ChargingSession::create($request->validated());
-        $session->load(['station', 'connector']);
+        $session->load(['station', 'connector', 'evModel']);
 
         return response()->json([
             'message' => 'Charging session recorded successfully.',
@@ -73,7 +73,7 @@ class ChargingSessionController extends Controller
      */
     public function show(ChargingSession $chargingSession): ChargingSessionResource
     {
-        $chargingSession->load(['station', 'connector']);
+        $chargingSession->load(['station', 'connector', 'evModel']);
 
         return new ChargingSessionResource($chargingSession);
     }
@@ -84,7 +84,7 @@ class ChargingSessionController extends Controller
     public function update(UpdateChargingSessionRequest $request, ChargingSession $chargingSession): JsonResponse
     {
         $chargingSession->update($request->validated());
-        $chargingSession->load(['station', 'connector']);
+        $chargingSession->load(['station', 'connector', 'evModel']);
 
         return response()->json([
             'message' => 'Charging session updated successfully.',

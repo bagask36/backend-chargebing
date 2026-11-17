@@ -30,6 +30,8 @@ class ChargingSessionResource extends JsonResource
             'station' => new StationResource($this->whenLoaded('station')),
             'connector_id' => $this->connector_id,
             'connector' => new ConnectorResource($this->whenLoaded('connector')),
+            'ev_model_id' => $this->ev_model_id,
+            'ev_model' => new EvModelResource($this->whenLoaded('evModel')),
             'charging_mode' => $this->charging_mode->value,
             'charging_mode_label' => $this->charging_mode->label(),
             'started_at' => $this->started_at?->toISOString(),

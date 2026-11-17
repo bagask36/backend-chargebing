@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Http\Requests\ChargingApp;
 
+use App\Models\ChargingApp;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -19,7 +20,7 @@ class UpdateChargingAppRequest extends FormRequest
      */
     public function rules(): array
     {
-        /** @var \App\Models\ChargingApp|null $chargingApp */
+        /** @var ChargingApp|null $chargingApp */
         $chargingApp = $this->route('charging_app');
 
         return [
@@ -39,4 +40,3 @@ class UpdateChargingAppRequest extends FormRequest
         ];
     }
 }
-

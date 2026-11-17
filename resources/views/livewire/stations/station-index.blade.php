@@ -196,7 +196,8 @@
                 {{-- Interactive Map Location Picker --}}
                 <div class="sm:col-span-2 space-y-2">
                     <div
-                        x-data="locationPickerMap({{ $form->latitude ?? -6.2088 }}, {{ $form->longitude ?? 106.8456 }})"
+                        wire:ignore
+                        x-data="locationPickerMap({{ !empty($form->latitude) ? $form->latitude : -6.2088 }}, {{ !empty($form->longitude) ? $form->longitude : 106.8456 }})"
                         class="p-3.5 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-zinc-50/70 dark:bg-zinc-900/70 space-y-2.5"
                     >
                         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 relative z-30">
@@ -218,6 +219,7 @@
                                             @focus="if (suggestions.length > 0) showSuggestions = true"
                                             placeholder="Ketik alamat/nama gedung..."
                                             size="sm"
+                                            clearable
                                             @keydown.enter.prevent="if (suggestions.length > 0) { selectSuggestion(suggestions[0]); } else { searchPickerLocation(); }"
                                             @keydown.escape="showSuggestions = false"
                                         />

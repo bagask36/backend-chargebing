@@ -85,4 +85,3 @@ test('can delete a charging app in admin', function () {
         'id' => $app->id,
     ]);
 });
-

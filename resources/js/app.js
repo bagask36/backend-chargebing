@@ -363,32 +363,53 @@ document.addEventListener('alpine:init', () => {
             });
 
             this.$watch('$wire.form.latitude', (val) => {
-                if (val && !isNaN(val)) {
+                if (val !== null && val !== undefined && val !== '' && !isNaN(val)) {
                     const lat = parseFloat(val);
-                    const lng = parseFloat(this.$wire.form.longitude || 106.8456);
-                    if (this.marker) {
-                        this.marker.setLatLng([lat, lng]);
-                    }
-                    if (this.pickerMap) {
-                        this.pickerMap.setView([lat, lng], this.pickerMap.getZoom());
-                        this.pickerMap.invalidateSize();
-                    }
+                    const lng = parseFloat(this.$wire.form?.longitude || initialLng || 106.8456);
+                    this.updateMarkerPosition(lat, lng);
                 }
             });
 
+            // Listen to station-modal-opened event
             window.addEventListener('station-modal-opened', () => {
-                setTimeout(() => {
-                    this.ensureMap();
-                }, 250);
+                this.onModalOpened();
             });
         },
 
-        ensureMap() {
+        onModalOpened() {
+            // Reset search input and suggestions whenever modal opens
+            this.pickerSearch = '';
+            this.suggestions = [];
+            this.showSuggestions = false;
+            this.isSearching = false;
+
+            setTimeout(() => {
+                const rawLat = this.$wire.form?.latitude;
+                const rawLng = this.$wire.form?.longitude;
+                const formLat = parseFloat(rawLat);
+                const formLng = parseFloat(rawLng);
+
+                const targetLat = !isNaN(formLat) && formLat !== 0 ? formLat : (initialLat || -6.2088);
+                const targetLng = !isNaN(formLng) && formLng !== 0 ? formLng : (initialLng || 106.8456);
+
+                if (!this.pickerMap) {
+                    this.setupPickerMap(targetLat, targetLng);
+                } else {
+                    this.updateMarkerPosition(targetLat, targetLng);
+                    this.pickerMap.invalidateSize();
+                }
+            }, 250);
+        },
+
+        ensureMap(forcedLat = null, forcedLng = null) {
             const el = this.$refs.pickerMapContainer;
             if (!el || el.clientWidth === 0 || el.clientHeight === 0) return;
             if (!this.pickerMap) {
-                this.setupPickerMap();
+                this.setupPickerMap(forcedLat, forcedLng);
             } else {
+                if (forcedLat !== null && forcedLng !== null) {
+                    this.updateMarkerPosition(forcedLat, forcedLng);
+                }
                 this.pickerMap.invalidateSize();
             }
         },
@@ -397,14 +418,35 @@ document.addEventListener('alpine:init', () => {
             const el = this.$refs.pickerMapContainer;
             if (!el) return;
 
-            let curLat = forcedLat ?? (parseFloat(this.$wire.form.latitude) || initialLat || -6.2088);
-            let curLng = forcedLng ?? (parseFloat(this.$wire.form.longitude) || initialLng || 106.8456);
+            let curLat = forcedLat ?? (parseFloat(this.$wire.form?.latitude) || initialLat || -6.2088);
+            let curLng = forcedLng ?? (parseFloat(this.$wire.form?.longitude) || initialLng || 106.8456);
 
-            if (!this.pickerMap) {
+            // If map already exists in this Alpine component instance, just update
+            if (this.pickerMap) {
+                this.updateMarkerPosition(curLat, curLng);
+                this.pickerMap.invalidateSize();
+                return;
+            }
+
+            // If DOM container already has a Leaflet map attached from an earlier instance, clean it up cleanly
+            if (el._leaflet_id) {
+                if (window.__chargebing_picker_map) {
+                    try {
+                        window.__chargebing_picker_map.remove();
+                    } catch (e) {}
+                    window.__chargebing_picker_map = null;
+                }
+                delete el._leaflet_id;
+                el.innerHTML = '';
+            }
+
+            try {
                 this.pickerMap = L.map(el, {
                     attributionControl: false,
                     zoomControl: true,
                 }).setView([curLat, curLng], 15);
+
+                window.__chargebing_picker_map = this.pickerMap;
 
                 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
                     maxZoom: 19,
@@ -442,13 +484,13 @@ document.addEventListener('alpine:init', () => {
                 setTimeout(() => {
                     if (this.pickerMap) this.pickerMap.invalidateSize();
                 }, 200);
-            } else {
-                this.updateMarkerPosition(curLat, curLng);
-                this.pickerMap.invalidateSize();
+            } catch (err) {
+                console.error('Leaflet picker map initialization error:', err);
             }
         },
 
         updateMarkerPosition(lat, lng) {
+            if (isNaN(lat) || isNaN(lng)) return;
             if (this.marker) {
                 this.marker.setLatLng([lat, lng]);
             }
@@ -459,6 +501,7 @@ document.addEventListener('alpine:init', () => {
         },
 
         setCoordinates(lat, lng) {
+            if (isNaN(lat) || isNaN(lng)) return;
             const roundedLat = parseFloat(lat.toFixed(7));
             const roundedLng = parseFloat(lng.toFixed(7));
             this.$wire.set('form.latitude', roundedLat);
@@ -467,7 +510,7 @@ document.addEventListener('alpine:init', () => {
 
         // Auto-suggestion as user types in picker
         async onPickerInput() {
-            const query = this.pickerSearch.trim();
+            const query = (this.pickerSearch || '').trim();
             if (query.length < 2) {
                 this.suggestions = [];
                 this.showSuggestions = false;
@@ -478,6 +521,7 @@ document.addEventListener('alpine:init', () => {
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=6&addressdetails=1`;
                 const res = await fetch(url);
+                if (!res.ok) throw new Error('Nominatim HTTP ' + res.status);
                 const data = await res.json();
                 this.suggestions = (data || []).map(item => ({
                     name: item.name || item.display_name.split(',')[0],
@@ -495,29 +539,33 @@ document.addEventListener('alpine:init', () => {
         },
 
         selectSuggestion(item) {
+            if (!item) return;
             this.pickerSearch = item.name || item.display_name;
             this.suggestions = [];
             this.showSuggestions = false;
 
-            const lat = item.lat;
-            const lng = item.lng;
+            const lat = parseFloat(item.lat);
+            const lng = parseFloat(item.lng);
+            if (isNaN(lat) || isNaN(lng)) return;
 
             if (!this.pickerMap) {
                 this.setupPickerMap(lat, lng);
             } else {
-                this.pickerMap.invalidateSize();
                 this.updateMarkerPosition(lat, lng);
+                this.pickerMap.invalidateSize();
             }
 
             this.setCoordinates(lat, lng);
 
             // Auto-fill address
-            this.$wire.set('form.address', item.display_name);
+            if (this.$wire) {
+                this.$wire.set('form.address', item.display_name);
 
-            // Auto-fill station name if still empty
-            const currentName = this.$wire.get ? this.$wire.get('form.name') : this.$wire.form?.name;
-            if (!currentName && item.name) {
-                this.$wire.set('form.name', item.name);
+                // Auto-fill station name if still empty
+                const currentName = (this.$wire.form?.name || '').trim();
+                if (!currentName && item.name) {
+                    this.$wire.set('form.name', item.name);
+                }
             }
         },
 
@@ -527,13 +575,14 @@ document.addEventListener('alpine:init', () => {
                 return;
             }
 
-            const query = this.pickerSearch.trim();
+            const query = (this.pickerSearch || '').trim();
             if (!query) return;
 
             this.isSearching = true;
             try {
                 const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=id&limit=1`;
                 const res = await fetch(url);
+                if (!res.ok) throw new Error('Nominatim HTTP ' + res.status);
                 const data = await res.json();
                 if (data && data.length > 0) {
                     this.selectSuggestion({
@@ -546,7 +595,7 @@ document.addEventListener('alpine:init', () => {
                     alert('Lokasi tidak ditemukan. Coba kata kunci yang lebih spesifik.');
                 }
             } catch (e) {
-                console.error(e);
+                console.error('searchPickerLocation error:', e);
             } finally {
                 this.isSearching = false;
             }

@@ -107,4 +107,3 @@ class ChargingAppForm extends Form
         ];
     }
 }
-

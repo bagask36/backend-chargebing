@@ -57,4 +57,3 @@ class ChargingAppSeeder extends Seeder
         }
     }
 }
-

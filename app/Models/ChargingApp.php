@@ -77,4 +77,3 @@ class ChargingApp extends Model
         });
     }
 }
-

@@ -29,4 +29,3 @@ class StoreChargingAppRequest extends FormRequest
         ];
     }
 }
-
