@@ -182,6 +182,17 @@
                     <flux:error name="form.operator" />
                 </flux:field>
 
+                <flux:field class="sm:col-span-2">
+                    <flux:label>Aplikasi Charging (Master Redirect)</flux:label>
+                    <flux:select wire:model="form.charging_app_id" placeholder="Pilih aplikasi charging (PLN Mobile, Voltron, dll)...">
+                        <flux:select.option :value="null">-- Tidak Ada / Auto Match --</flux:select.option>
+                        @foreach($chargingApps as $app)
+                            <flux:select.option :value="$app->id">{{ $app->name }} ({{ $app->scheme_url ?? 'App Store' }})</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                    <flux:error name="form.charging_app_id" />
+                </flux:field>
+
                 {{-- Interactive Map Location Picker --}}
                 <div class="sm:col-span-2 space-y-2">
                     <div

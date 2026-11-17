@@ -20,6 +20,8 @@ class StationForm extends Form
 
     public string $operator = '';
 
+    public ?int $charging_app_id = null;
+
     public string $address = '';
 
     public ?float $latitude = null;
@@ -49,6 +51,7 @@ class StationForm extends Form
         return [
             'name' => ['required', 'string', 'max:255'],
             'operator' => ['nullable', 'string', 'max:255'],
+            'charging_app_id' => ['nullable', 'integer', 'exists:charging_apps,id'],
             'address' => ['nullable', 'string'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],
@@ -72,6 +75,7 @@ class StationForm extends Form
         $this->station = $station;
         $this->name = $station->name;
         $this->operator = (string) ($station->operator ?? '');
+        $this->charging_app_id = $station->charging_app_id;
         $this->address = (string) ($station->address ?? '');
         $this->latitude = (float) $station->latitude;
         $this->longitude = (float) $station->longitude;
@@ -103,6 +107,7 @@ class StationForm extends Form
         $this->station = null;
         $this->name = '';
         $this->operator = '';
+        $this->charging_app_id = null;
         $this->address = '';
         $this->latitude = null;
         $this->longitude = null;
@@ -162,6 +167,7 @@ class StationForm extends Form
         $station = Station::create([
             'name' => $this->name,
             'operator' => filled($this->operator) ? $this->operator : null,
+            'charging_app_id' => $this->charging_app_id,
             'address' => filled($this->address) ? $this->address : null,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,
@@ -193,6 +199,7 @@ class StationForm extends Form
         $this->station->update([
             'name' => $this->name,
             'operator' => filled($this->operator) ? $this->operator : null,
+            'charging_app_id' => $this->charging_app_id,
             'address' => filled($this->address) ? $this->address : null,
             'latitude' => $this->latitude,
             'longitude' => $this->longitude,

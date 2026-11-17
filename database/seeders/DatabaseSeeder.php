@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Enums\CompatStatus;
 use App\Enums\CurrentType;
 use App\Enums\PlugType;
+use App\Models\ChargingApp;
 use App\Models\ChargingSession;
 use App\Models\EvModel;
 use App\Models\Station;
@@ -24,12 +25,20 @@ class DatabaseSeeder extends Seeder
         // 1. Seed EV Models in Indonesia
         $this->call(EvModelSeeder::class);
 
+        // 2. Seed Master Charging Apps (PLN Mobile, Voltron, E Charge, Terra Charge)
+        $this->call(ChargingAppSeeder::class);
+
+        $plnApp = ChargingApp::where('slug', 'pln-mobile')->first();
+        $voltronApp = ChargingApp::where('slug', 'voltron')->first();
+        $eChargeApp = ChargingApp::where('slug', 'e-charge-international')->first();
+        $terraChargeApp = ChargingApp::where('slug', 'terra-charge')->first();
+
         $defaultCar = EvModel::where('brand', 'Wuling')
             ->where('model_name', 'BinguoEV')
             ->where('variant', '410 km')
             ->first();
 
-        // 2. Seed Single Admin User from config/env
+        // 3. Seed Single Admin User from config/env
         $adminEmail = config('app.admin.email') ?: env('ADMIN_EMAIL', 'admin@chargebing.local');
         $adminPassword = config('app.admin.password') ?: env('ADMIN_PASSWORD', 'password123');
         $adminName = config('app.admin.name') ?: env('ADMIN_NAME', 'Admin ChargeBing');
@@ -44,11 +53,12 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 2. Realistic EV Charging Stations in Jabodetabek
+        // 4. Realistic EV Charging Stations in Jabodetabek
         $stationsData = [
             [
                 'name' => 'SPKLU PLN UID Jakarta Raya (Gambir)',
                 'operator' => 'PLN SPKLU',
+                'charging_app_id' => $plnApp?->id,
                 'address' => 'Jl. M.I. Ridwan Rais No.1, Gambir, Jakarta Pusat',
                 'latitude' => -6.1789210,
                 'longitude' => 106.8324120,
@@ -111,6 +121,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'SPKLU Rest Area KM 57A Tol Jakarta-Cikampek',
                 'operator' => 'PLN SPKLU',
+                'charging_app_id' => $plnApp?->id,
                 'address' => 'Rest Area KM 57A Tol Japek, Klari, Karawang',
                 'latitude' => -6.3774820,
                 'longitude' => 107.3598140,
@@ -164,6 +175,7 @@ class DatabaseSeeder extends Seeder
             [
                 'name' => 'SPKLU PLN UP3 Gandaria',
                 'operator' => 'PLN SPKLU',
+                'charging_app_id' => $plnApp?->id,
                 'address' => 'Jl. Gandaria I No.28, Kebayoran Baru, Jakarta Selatan',
                 'latitude' => -6.2483100,
                 'longitude' => 106.7924500,
@@ -180,6 +192,52 @@ class DatabaseSeeder extends Seeder
                         'compat_status' => CompatStatus::NATIVE,
                         'adapter_note' => null,
                         'last_tested_at' => Carbon::now()->subDays(1)->toDateString(),
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Voltron Senayan City',
+                'operator' => 'Voltron',
+                'charging_app_id' => $voltronApp?->id,
+                'address' => 'Parkir B2 Senayan City, Jl. Asia Afrika, Jakarta Pusat',
+                'latitude' => -6.2272200,
+                'longitude' => 106.7974500,
+                'pricing_note' => 'Tarif via aplikasi Voltron',
+                'opening_hours' => '10:00 - 22:00',
+                'notes' => 'Tersedia DC fast charger dan AC charger via Voltron app.',
+                'is_favorite' => false,
+                'connectors' => [
+                    [
+                        'current_type' => CurrentType::DC,
+                        'plug_type' => PlugType::CCS2,
+                        'power_kw' => 60.0,
+                        'unit_count' => 2,
+                        'compat_status' => CompatStatus::ADAPTER_OK,
+                        'adapter_note' => 'Adaptor CCS2 to GB/T berjalan lancar.',
+                        'last_tested_at' => Carbon::now()->subDays(2)->toDateString(),
+                    ],
+                ],
+            ],
+            [
+                'name' => 'Terra Charge Grand Indonesia',
+                'operator' => 'Terra Charge',
+                'charging_app_id' => $terraChargeApp?->id,
+                'address' => 'East Mall B1, Grand Indonesia, Jakarta Pusat',
+                'latitude' => -6.1953100,
+                'longitude' => 106.8207500,
+                'pricing_note' => 'Aktivasi via aplikasi Terra Charge',
+                'opening_hours' => '10:00 - 22:00',
+                'notes' => 'Mudah digunakan dengan scan QR di aplikasi Terra Charge.',
+                'is_favorite' => false,
+                'connectors' => [
+                    [
+                        'current_type' => CurrentType::AC,
+                        'plug_type' => PlugType::TYPE2,
+                        'power_kw' => 22.0,
+                        'unit_count' => 2,
+                        'compat_status' => CompatStatus::ADAPTER_OK,
+                        'adapter_note' => 'Adaptor Type 2 to GB/T berjalan stabil.',
+                        'last_tested_at' => Carbon::now()->subDays(4)->toDateString(),
                     ],
                 ],
             ],

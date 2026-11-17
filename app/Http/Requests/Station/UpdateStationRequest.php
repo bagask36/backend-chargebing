@@ -21,6 +21,7 @@ class UpdateStationRequest extends FormRequest
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'operator' => ['nullable', 'string', 'max:255'],
+            'charging_app_id' => ['nullable', 'integer', 'exists:charging_apps,id'],
             'address' => ['nullable', 'string'],
             'latitude' => ['sometimes', 'required', 'numeric', 'between:-90,90'],
             'longitude' => ['sometimes', 'required', 'numeric', 'between:-180,180'],

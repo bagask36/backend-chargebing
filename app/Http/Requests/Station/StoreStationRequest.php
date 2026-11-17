@@ -21,6 +21,7 @@ class StoreStationRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'operator' => ['nullable', 'string', 'max:255'],
+            'charging_app_id' => ['nullable', 'integer', 'exists:charging_apps,id'],
             'address' => ['nullable', 'string'],
             'latitude' => ['required', 'numeric', 'between:-90,90'],
             'longitude' => ['required', 'numeric', 'between:-180,180'],

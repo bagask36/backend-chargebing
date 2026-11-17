@@ -38,7 +38,7 @@ class AuthController extends Controller
             'message' => 'Authentication successful.',
             'token' => $token,
             'token_type' => 'Bearer',
-            'user' => new UserResource($user),
+            'user' => new UserResource($user->load('evModel')),
         ], Response::HTTP_OK);
     }
 

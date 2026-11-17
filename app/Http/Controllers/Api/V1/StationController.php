@@ -23,7 +23,7 @@ class StationController extends Controller
      */
     public function index(Request $request): AnonymousResourceCollection
     {
-        $query = Station::query()->with(['connectors', 'photos']);
+        $query = Station::query()->with(['connectors', 'photos', 'chargingApp']);
 
         // Filter: Usable only (native or adapter_ok)
         if ($request->boolean('usable_only')) {
@@ -106,7 +106,7 @@ class StationController extends Controller
     public function store(StoreStationRequest $request): JsonResponse
     {
         $station = Station::create($request->validated());
-        $station->load(['connectors', 'photos']);
+        $station->load(['connectors', 'photos', 'chargingApp']);
 
         return response()->json([
             'message' => 'Station created successfully.',
@@ -119,7 +119,7 @@ class StationController extends Controller
      */
     public function show(Station $station): StationResource
     {
-        $station->load(['connectors', 'photos']);
+        $station->load(['connectors', 'photos', 'chargingApp']);
 
         return new StationResource($station);
     }
@@ -130,7 +130,7 @@ class StationController extends Controller
     public function update(UpdateStationRequest $request, Station $station): JsonResponse
     {
         $station->update($request->validated());
-        $station->load(['connectors', 'photos']);
+        $station->load(['connectors', 'photos', 'chargingApp']);
 
         return response()->json([
             'message' => 'Station updated successfully.',

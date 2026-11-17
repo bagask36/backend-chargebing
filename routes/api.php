@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ChargingAppController;
 use App\Http\Controllers\Api\V1\ChargingSessionController;
 use App\Http\Controllers\Api\V1\EvModelController;
 use App\Http\Controllers\Api\V1\StationConnectorController;
@@ -26,6 +27,9 @@ Route::prefix('v1')->group(function (): void {
 
         // EV Models (Mobil Listrik Master Data)
         Route::apiResource('ev-models', EvModelController::class)->names('api.v1.ev-models');
+
+        // Charging Apps Master Data (Aplikasi Operator SPKLU)
+        Route::apiResource('charging-apps', ChargingAppController::class)->names('api.v1.charging-apps');
 
         // Charging Stations
         Route::apiResource('stations', StationController::class)->names('api.v1.stations');

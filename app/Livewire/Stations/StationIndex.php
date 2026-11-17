@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Livewire\Stations;
 
 use App\Livewire\Forms\StationForm;
+use App\Models\ChargingApp;
 use App\Models\Station;
 use Flux;
 use Illuminate\Contracts\View\View;
@@ -182,6 +183,7 @@ class StationIndex extends Component
         return view('livewire.stations.station-index', [
             'stations' => $stations,
             'allMapStations' => $allMapStations,
+            'chargingApps' => ChargingApp::active()->orderBy('name')->get(),
         ]);
     }
 }

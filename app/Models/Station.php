@@ -9,6 +9,7 @@ use Database\Factories\StationFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -20,6 +21,7 @@ class Station extends Model
     protected $fillable = [
         'name',
         'operator',
+        'charging_app_id',
         'address',
         'latitude',
         'longitude',
@@ -41,6 +43,14 @@ class Station extends Model
             'longitude' => 'float',
             'is_favorite' => 'boolean',
         ];
+    }
+
+    /**
+     * @return BelongsTo<ChargingApp, $this>
+     */
+    public function chargingApp(): BelongsTo
+    {
+        return $this->belongsTo(ChargingApp::class);
     }
 
     /**
