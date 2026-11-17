@@ -69,12 +69,25 @@ class AuthController extends Controller
      */
     public function updateProfile(Request $request): JsonResponse
     {
+        $user = $request->user();
+
         $validated = $request->validate([
             'name' => ['sometimes', 'string', 'max:255'],
+            'email' => [
+                'sometimes',
+                'string',
+                'email',
+                'max:255',
+                \Illuminate\Validation\Rule::unique('users')->ignore($user->id),
+            ],
+            'password' => ['nullable', 'string', 'min:8'],
             'ev_model_id' => ['sometimes', 'nullable', 'exists:ev_models,id'],
         ]);
 
-        $user = $request->user();
+        if (empty($validated['password'])) {
+            unset($validated['password']);
+        }
+
         $user->update($validated);
 
         return response()->json([

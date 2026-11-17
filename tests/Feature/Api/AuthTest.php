@@ -84,6 +84,30 @@ test('authenticated user can logout and revoke token', function (): void {
     expect($user->tokens()->count())->toBe(0);
 });
 
+test('authenticated user can update profile details', function (): void {
+    $user = User::factory()->create([
+        'name' => 'Original Name',
+        'email' => 'orig@example.com',
+    ]);
+    Sanctum::actingAs($user);
+
+    $response = $this->putJson('/api/v1/me', [
+        'name' => 'Bagas Keshena',
+        'email' => 'bagas@example.com',
+        'password' => 'newpassword123',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('user.name', 'Bagas Keshena')
+        ->assertJsonPath('user.email', 'bagas@example.com');
+
+    $this->assertDatabaseHas('users', [
+        'id' => $user->id,
+        'name' => 'Bagas Keshena',
+        'email' => 'bagas@example.com',
+    ]);
+});
+
 test('unauthenticated request to protected endpoint is rejected with 401', function (): void {
     $this->getJson('/api/v1/stations')
         ->assertUnauthorized();
