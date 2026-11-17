@@ -141,3 +141,4 @@ test('station returns charging app data and deep link URLs', function () {
         ->assertJsonPath('data.app_scheme_url', 'plnmobile://')
         ->assertJsonPath('data.app_store_url', 'https://apps.apple.com/id/app/pln-mobile/id1296796967');
 });
+

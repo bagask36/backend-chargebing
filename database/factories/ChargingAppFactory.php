@@ -35,3 +35,4 @@ class ChargingAppFactory extends Factory
         ];
     }
 }
+

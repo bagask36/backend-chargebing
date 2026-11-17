@@ -39,3 +39,4 @@ class UpdateChargingAppRequest extends FormRequest
         ];
     }
 }
+
