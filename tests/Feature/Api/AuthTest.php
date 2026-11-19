@@ -112,3 +112,22 @@ test('unauthenticated request to protected endpoint is rejected with 401', funct
     $this->getJson('/api/v1/stations')
         ->assertUnauthorized();
 });
+
+test('authenticated user can update profile including avatar', function (): void {
+    $user = User::factory()->create();
+    Sanctum::actingAs($user);
+
+    $response = $this->putJson('/api/v1/me', [
+        'name' => 'Bagas Updated',
+        'avatar' => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+    ]);
+
+    $response->assertOk()
+        ->assertJsonPath('user.name', 'Bagas Updated')
+        ->assertJsonPath('user.avatar_url', 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==');
+
+    $this->assertDatabaseHas('users', [
+        'id' => $user->id,
+        'name' => 'Bagas Updated',
+    ]);
+});

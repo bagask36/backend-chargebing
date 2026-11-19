@@ -83,7 +83,14 @@ class AuthController extends Controller
             ],
             'password' => ['nullable', 'string', 'min:8'],
             'ev_model_id' => ['sometimes', 'nullable', 'exists:ev_models,id'],
+            'avatar' => ['sometimes', 'nullable', 'string'],
+            'avatar_url' => ['sometimes', 'nullable', 'string'],
         ]);
+
+        if (array_key_exists('avatar', $validated)) {
+            $validated['avatar_url'] = $validated['avatar'];
+            unset($validated['avatar']);
+        }
 
         if (empty($validated['password'])) {
             unset($validated['password']);
