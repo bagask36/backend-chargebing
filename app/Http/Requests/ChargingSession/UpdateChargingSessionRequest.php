@@ -31,6 +31,8 @@ class UpdateChargingSessionRequest extends FormRequest
             'cost' => ['nullable', 'numeric', 'min:0'],
             'soc_start' => ['nullable', 'integer', 'between:0,100'],
             'soc_end' => ['nullable', 'integer', 'between:0,100'],
+            'odometer_km' => ['nullable', 'integer', 'min:0'],
+            'distance_km' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ];
     }

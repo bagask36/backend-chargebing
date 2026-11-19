@@ -24,6 +24,9 @@ class ChargingSessionResource extends JsonResource
             ? (int) $this->started_at->diffInMinutes($this->ended_at)
             : null;
 
+        $previous = $this->resource->previousSession();
+        $distanceKm = $this->resource->resolvedDistanceKm($previous);
+
         return [
             'id' => $this->id,
             'station_id' => $this->station_id,
@@ -42,6 +45,16 @@ class ChargingSessionResource extends JsonResource
             'soc_start' => $this->soc_start,
             'soc_end' => $this->soc_end,
             'soc_delta' => ($this->soc_end !== null && $this->soc_start !== null) ? ($this->soc_end - $this->soc_start) : null,
+            'odometer_km' => $this->odometer_km,
+            'distance_km' => $distanceKm,
+            'distance_km_input' => $this->distance_km,
+            'previous_session' => $previous ? [
+                'id' => $previous->id,
+                'started_at' => $previous->started_at?->toISOString(),
+                'kwh' => (float) $previous->kwh,
+                'odometer_km' => $previous->odometer_km,
+            ] : null,
+            'efficiency_km_per_kwh' => $this->resource->efficiencyKmPerKwh($previous),
             'notes' => $this->notes,
             'created_at' => $this->created_at?->toISOString(),
             'updated_at' => $this->updated_at?->toISOString(),

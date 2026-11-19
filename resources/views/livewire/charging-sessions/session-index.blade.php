@@ -180,6 +180,24 @@
                     </flux:field>
                 </div>
 
+                {{-- Odometer --}}
+                <div>
+                    <flux:field>
+                        <flux:label>Odometer Saat Charging (km)</flux:label>
+                        <flux:input wire:model="form.odometer_km" type="number" min="0" placeholder="cth: 12450" />
+                        <flux:error name="form.odometer_km" />
+                    </flux:field>
+                </div>
+
+                {{-- Distance since last charge --}}
+                <div>
+                    <flux:field>
+                        <flux:label>Jarak Sejak Charging Terakhir (km)</flux:label>
+                        <flux:input wire:model="form.distance_km" type="number" step="0.1" min="0" placeholder="Kosongkan = otomatis dari odometer" />
+                        <flux:error name="form.distance_km" />
+                    </flux:field>
+                </div>
+
                 {{-- Smart Charging Estimation Box --}}
                 @php
                     $calcCar = $form->ev_model_id ? $allEvModels->firstWhere('id', $form->ev_model_id) : null;

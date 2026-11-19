@@ -35,6 +35,10 @@ class ChargingSessionForm extends Form
 
     public ?int $soc_end = null;
 
+    public ?int $odometer_km = null;
+
+    public ?float $distance_km = null;
+
     public string $notes = '';
 
     /**
@@ -53,6 +57,8 @@ class ChargingSessionForm extends Form
             'cost' => ['nullable', 'numeric', 'min:0'],
             'soc_start' => ['nullable', 'integer', 'between:0,100'],
             'soc_end' => ['nullable', 'integer', 'between:0,100'],
+            'odometer_km' => ['nullable', 'integer', 'min:0'],
+            'distance_km' => ['nullable', 'numeric', 'min:0'],
             'notes' => ['nullable', 'string'],
         ];
     }
@@ -70,6 +76,8 @@ class ChargingSessionForm extends Form
         $this->cost = $session->cost !== null ? (float) $session->cost : null;
         $this->soc_start = $session->soc_start;
         $this->soc_end = $session->soc_end;
+        $this->odometer_km = $session->odometer_km;
+        $this->distance_km = $session->distance_km !== null ? (float) $session->distance_km : null;
         $this->notes = (string) ($session->notes ?? '');
     }
 
@@ -86,6 +94,8 @@ class ChargingSessionForm extends Form
         $this->cost = null;
         $this->soc_start = null;
         $this->soc_end = null;
+        $this->odometer_km = null;
+        $this->distance_km = null;
         $this->notes = '';
     }
 
@@ -104,6 +114,8 @@ class ChargingSessionForm extends Form
             'cost' => $this->cost,
             'soc_start' => $this->soc_start,
             'soc_end' => $this->soc_end,
+            'odometer_km' => $this->odometer_km,
+            'distance_km' => $this->distance_km,
             'notes' => filled($this->notes) ? $this->notes : null,
         ]);
     }
@@ -123,6 +135,8 @@ class ChargingSessionForm extends Form
             'cost' => $this->cost,
             'soc_start' => $this->soc_start,
             'soc_end' => $this->soc_end,
+            'odometer_km' => $this->odometer_km,
+            'distance_km' => $this->distance_km,
             'notes' => filled($this->notes) ? $this->notes : null,
         ]);
 

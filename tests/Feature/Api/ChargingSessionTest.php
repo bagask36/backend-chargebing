@@ -180,3 +180,53 @@ test('can delete a charging session', function (): void {
 
     $this->assertDatabaseMissing('charging_sessions', ['id' => $session->id]);
 });
+
+test('calculates distance from odometer and km per kwh based on previous charging', function (): void {
+    $station = Station::factory()->create();
+
+    $previous = ChargingSession::factory()->create([
+        'station_id' => $station->id,
+        'started_at' => '2026-11-10 08:00:00',
+        'ended_at' => '2026-11-10 09:00:00',
+        'kwh' => 40.0,
+        'odometer_km' => 10000,
+    ]);
+
+    $response = $this->postJson('/api/v1/charging-sessions', [
+        'station_id' => $station->id,
+        'charging_mode' => 'DC',
+        'started_at' => '2026-11-15 08:00:00',
+        'ended_at' => '2026-11-15 09:00:00',
+        'kwh' => 35.0,
+        'odometer_km' => 10260,
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.odometer_km', 10260)
+        ->assertJsonPath('data.distance_km', 260)
+        ->assertJsonPath('data.previous_session.id', $previous->id)
+        ->assertJsonPath('data.efficiency_km_per_kwh', 6.5);
+});
+
+test('manual distance overrides odometer calculation', function (): void {
+    $station = Station::factory()->create();
+
+    ChargingSession::factory()->create([
+        'station_id' => $station->id,
+        'started_at' => '2026-11-10 08:00:00',
+        'ended_at' => '2026-11-10 09:00:00',
+        'kwh' => 30.0,
+    ]);
+
+    $response = $this->postJson('/api/v1/charging-sessions', [
+        'station_id' => $station->id,
+        'charging_mode' => 'AC',
+        'started_at' => '2026-11-12 08:00:00',
+        'kwh' => 20.0,
+        'distance_km' => 180,
+    ]);
+
+    $response->assertCreated()
+        ->assertJsonPath('data.distance_km', 180)
+        ->assertJsonPath('data.efficiency_km_per_kwh', 6);
+});

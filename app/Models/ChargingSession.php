@@ -26,8 +26,58 @@ class ChargingSession extends Model
         'cost',
         'soc_start',
         'soc_end',
+        'odometer_km',
+        'distance_km',
         'notes',
     ];
+
+    /**
+     * Sesi charging tepat sebelum sesi ini (berdasarkan waktu mulai).
+     */
+    public function previousSession(): ?self
+    {
+        if ($this->started_at === null) {
+            return null;
+        }
+
+        return self::query()
+            ->where('started_at', '<', $this->started_at)
+            ->when($this->exists, fn ($q) => $q->whereKeyNot($this->getKey()))
+            ->orderByDesc('started_at')
+            ->first();
+    }
+
+    /**
+     * Jarak tempuh sejak charging terakhir. Pakai nilai manual jika diisi,
+     * jika tidak hitung dari selisih odometer dengan sesi sebelumnya.
+     */
+    public function resolvedDistanceKm(?self $previous): ?float
+    {
+        if ($this->distance_km !== null) {
+            return (float) $this->distance_km;
+        }
+
+        if ($this->odometer_km !== null && $previous?->odometer_km !== null && $this->odometer_km >= $previous->odometer_km) {
+            return (float) ($this->odometer_km - $previous->odometer_km);
+        }
+
+        return null;
+    }
+
+    /**
+     * Efisiensi km/kWh: jarak tempuh sejak charging terakhir dibagi energi
+     * (kWh) yang diisi pada charging terakhir tersebut.
+     */
+    public function efficiencyKmPerKwh(?self $previous): ?float
+    {
+        $distance = $this->resolvedDistanceKm($previous);
+
+        if ($distance === null || $previous === null || (float) $previous->kwh <= 0) {
+            return null;
+        }
+
+        return round($distance / (float) $previous->kwh, 2);
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -44,6 +94,8 @@ class ChargingSession extends Model
             'cost' => 'float',
             'soc_start' => 'integer',
             'soc_end' => 'integer',
+            'odometer_km' => 'integer',
+            'distance_km' => 'float',
         ];
     }
 
